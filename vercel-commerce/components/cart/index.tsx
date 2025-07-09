@@ -1,28 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useCart } from "./cart-context";
 import CartModal from "./modal";
 
 export default function Cart() {
-  const [cart, setCart] = useState(null);
+  const { cart, refreshCart } = useCart();
 
   useEffect(() => {
-    fetchCart();
-  }, []);
-
-  async function fetchCart() {
-    try {
-      const res = await fetch("/api/cart");
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`API error: ${res.status} — ${text}`);
-      }
-      const data = await res.json();
-      setCart(data);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+    refreshCart();
+  }, [refreshCart]);
 
   if (!cart) return <div>Loading cart...</div>;
 

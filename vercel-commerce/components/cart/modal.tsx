@@ -35,7 +35,8 @@ export default function CartModal({ cart }: { cart: Cart | undefined }) {
 
   const cartEmpty = !cart || !cart.lines || cart.lines.length === 0;
 
-  //console.log("Modal: ", cart?.lines?.[0]);
+  // console.log("Modal: ", cart?.lines?.[0]);
+  
 
   return (
     <>
@@ -89,13 +90,13 @@ export default function CartModal({ cart }: { cart: Cart | undefined }) {
                         }
                       });
 
-                      console.log('Cart debug:', {
-                        itemPrice: item.unit_price,
-                        quantity: item.quantity,
-                        taxRate: cart.region?.tax_rate,
-                        taxTotal: cart.tax_total,
-                        region: cart.region
-                      });
+                      // console.log('Cart debug:', {
+                      //   itemPrice: item.unit_price,
+                      //   quantity: item.quantity,
+                      //   taxRate: cart.region?.tax_rate,
+                      //   taxTotal: cart.tax_total,
+                      //   region: cart.region
+                      // });
 
                       const merchandiseUrl = createUrl(
                         `/product/${item.merchandise.product.handle}`,

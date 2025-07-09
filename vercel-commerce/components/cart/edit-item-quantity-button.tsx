@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import LoadingDots from 'components/loading-dots';
+import { useCart } from './cart-context';
 import type { CartItem } from 'lib/medusa/types';
 
 export default function EditItemQuantityButton({
@@ -14,7 +14,7 @@ export default function EditItemQuantityButton({
   item: CartItem;
   type: 'plus' | 'minus';
 }) {
-  const router = useRouter();
+  const { refreshCart } = useCart();
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -52,7 +52,7 @@ export default function EditItemQuantityButton({
             throw new Error(`Cart update failed: ${text}`);
           }
 
-          router.refresh();
+          await refreshCart();
         });
       }}
       disabled={isPending}

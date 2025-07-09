@@ -2,13 +2,14 @@
 
 import CloseIcon from 'components/icons/close';
 import LoadingDots from 'components/loading-dots';
-import { useRouter } from 'next/navigation';
+
 import clsx from 'clsx';
 import type { CartItem } from 'lib/medusa/types';
 import { useTransition } from 'react';
+import { useCart } from './cart-context';
 
 export default function DeleteItemButton({ item }: { item: CartItem }) {
-  const router = useRouter();
+  const { refreshCart } = useCart();
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -29,7 +30,7 @@ export default function DeleteItemButton({ item }: { item: CartItem }) {
             throw new Error(`Remove item failed: ${text}`);
           }
 
-          router.refresh();
+          await refreshCart();
         });
       }}
       disabled={isPending}

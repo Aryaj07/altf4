@@ -19,12 +19,12 @@ const Price = ({
   // Round to 2 decimal places to avoid floating point issues
   const validAmount = Number.isFinite(rawAmount) ? Number(rawAmount.toFixed(2)) : 0;
   
-  console.log("Price debug:", {
-    originalAmount: amount,
-    rawAmount,
-    validAmount,
-    currencyCode: validCurrencyCode
-  });
+  // console.log("Price debug:", {
+  //   originalAmount: amount,
+  //   rawAmount,
+  //   validAmount,
+  //   currencyCode: validCurrencyCode
+  // });
 
   return (
     <p suppressHydrationWarning={true} className={className}>

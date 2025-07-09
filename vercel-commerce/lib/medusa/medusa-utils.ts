@@ -159,7 +159,7 @@ const reshapeLineItem = (lineItem: MedusaLineItem, currency_code: string): CartI
 
   return {
     ...lineItem,
-    merchandise,
+    merchandise: merchandise as any,
     cost,
     quantity
   };
@@ -170,12 +170,12 @@ export const reshapeCart = (cart: MedusaCart): Cart => {
     throw new Error('Cannot reshape undefined cart');
   }
 
-  console.log('Original Medusa cart:', {
-    region: cart.region,
-    total: cart.total,
-    tax_total: cart.tax_total,
-    items: cart.items
-  });
+  // console.log('Original Medusa cart:', {
+  //   region: cart.region,
+  //   total: cart.total,
+  //   tax_total: cart.tax_total,
+  //   items: cart.items
+  // });
 
   const lines = cart?.items?.map((item) => reshapeLineItem(item, cart?.region?.currency_code!)) || [];
   const totalQuantity = lines.reduce((a, b) => a + b.quantity, 0);
