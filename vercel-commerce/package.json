@@ -20,8 +20,13 @@
     "*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@headlessui/react": "^1.7.15",
     "@heroicons/react": "^2.0.18",
+    "@heroui/dropdown": "^2.3.22",
+    "@heroui/react": "^2.7.11",
+    "@mui/material": "^7.2.0",
     "@types/js-cookie": "^3.0.6",
     "clsx": "^2.0.0",
     "cookies-next": "^2.1.2",
