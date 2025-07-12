@@ -115,7 +115,7 @@ export const reshapeLineItem = (lineItem: MedusaLineItem, currency_code: string)
 
   return {
     ...lineItem,
-    merchandise,
+    merchandise: merchandise as any,
     cost,
     quantity
   };

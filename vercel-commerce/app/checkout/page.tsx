@@ -5,9 +5,117 @@ import Price from 'components/price-new';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import type { ChangeEvent } from 'react';
-import TextField from '@mui/material/TextField';
-import MenuItem from '@mui/material/MenuItem';
-import InputAdornment from '@mui/material/InputAdornment';
+import { TextInput, Select, Checkbox, Button, Group } from '@mantine/core';
+
+const handlePlaceOrder = (payment: string) => {
+  if (payment === 'razorpay') {
+    // TODO: Integrate Razorpay payment flow here
+    alert('Proceeding to Razorpay payment...');
+  } else if (payment === 'cod') {
+    // TODO: Handle cash on delivery order placement here
+    alert('Order placed with Cash on Delivery!');
+  }
+};
+
+// Payment options for card radio group
+const PAYMENT_OPTIONS = [
+  {
+    value: 'razorpay',
+    title: 'Pay With Razorpay',
+    subtitle: 'Credit card / Debit card / Net Banking / UPI',
+  },
+  {
+    value: 'cod',
+    title: 'Cash on delivery',
+    subtitle: '',
+  },
+];
+
+// Delivery options for delivery radio group
+const DELIVERY_OPTIONS = [
+  {
+    value: 'standard',
+    title: 'Standard Shipping',
+    subtitle: '₹0.00 (3-7 days)',
+  },
+  {
+    value: 'express',
+    title: 'Express Shipping',
+    subtitle: '₹99.00 (1-2 days)',
+  },
+];
+
+function PaymentRadioGroup({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  return (
+    <div className="space-y-3">
+      {PAYMENT_OPTIONS.map((option) => {
+        const checked = value === option.value;
+        return (
+          <label key={option.value} className="block w-full">
+            <input
+              type="radio"
+              name="payment"
+              value={option.value}
+              checked={checked}
+              onChange={() => onChange(option.value)}
+              className="sr-only"
+            />
+            <div
+              className={[
+                'w-full rounded-lg border p-4 cursor-pointer transition-colors flex flex-col',
+                checked
+                  ? 'border-blue-500 bg-gray-100 dark:bg-neutral-800 shadow-sm'
+                  : 'border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900',
+                checked ? 'ring-2 ring-blue-500' : '',
+              ].join(' ')}
+            >
+              <span className="font-bold text-black dark:text-white">{option.title}</span>
+              {option.subtitle && (
+                <span className="text-xs text-gray-600 dark:text-neutral-300 mt-1">{option.subtitle}</span>
+              )}
+            </div>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+function DeliveryRadioGroup({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  return (
+    <div className="space-y-3">
+      {DELIVERY_OPTIONS.map((option) => {
+        const checked = value === option.value;
+        return (
+          <label key={option.value} className="block w-full">
+            <input
+              type="radio"
+              name="delivery"
+              value={option.value}
+              checked={checked}
+              onChange={() => onChange(option.value)}
+              className="sr-only"
+            />
+            <div
+              className={[
+                'w-full rounded-lg border p-4 cursor-pointer transition-colors flex flex-col',
+                checked
+                  ? 'border-blue-500 bg-gray-100 dark:bg-neutral-800 shadow-sm'
+                  : 'border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900',
+                checked ? 'ring-2 ring-blue-500' : '',
+              ].join(' ')}
+            >
+              <span className="font-bold text-black dark:text-white">{option.title}</span>
+              {option.subtitle && (
+                <span className="text-xs text-gray-600 dark:text-neutral-300 mt-1">{option.subtitle}</span>
+              )}
+            </div>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
 
 
 // List of Indian states and union territories
@@ -51,7 +159,7 @@ export default function CheckoutPage() {
   const { cart } = useCart();
 
   // Promocode state (for cart section)
-  const [promoOpen, setPromoOpen] = useState(true);
+  const [promoOpen, setPromoOpen] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoError, setPromoError] = useState('');
@@ -135,7 +243,7 @@ export default function CheckoutPage() {
     }
   }, [deliveryMethod]);
 
-  // Separate handlers for MUI TextField (input/select) and checkbox
+  // Mantine input handlers
   const handleShippingInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === 'phone' && shipping.country === 'India') {
@@ -148,9 +256,7 @@ export default function CheckoutPage() {
       setShipping((prev: ShippingType) => ({ ...prev, [name]: value }));
     }
   };
-  const handleShippingSelectChange = (e: ChangeEvent<{ name?: string; value: unknown }>) => {
-    const name = e.target.name as string;
-    const value = e.target.value as string;
+  const handleShippingSelectChange = (name: string, value: string) => {
     setShipping((prev: ShippingType) => ({ ...prev, [name]: value }));
   };
   const handleShippingCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -162,35 +268,39 @@ export default function CheckoutPage() {
     setBilling((prev: BillingType) => ({ ...prev, [name]: value }));
     setBillingTouched(true);
   };
-  const handleBillingSelectChange = (e: ChangeEvent<{ name?: string; value: unknown }>) => {
-    const name = e.target.name as string;
-    const value = e.target.value as string;
+  const handleBillingSelectChange = (name: string, value: string) => {
     setBilling((prev: BillingType) => ({ ...prev, [name]: value }));
     setBillingTouched(true);
   };
 
   const shippingValid =
-    shipping.firstName &&
-    shipping.lastName &&
-    shipping.address &&
-    shipping.postalCode &&
-    shipping.city &&
-    shipping.country &&
-    shipping.email;
+    !!shipping.firstName &&
+    !!shipping.lastName &&
+    !!shipping.address &&
+    !!shipping.postalCode &&
+    !!shipping.city &&
+    !!shipping.country &&
+    !!shipping.email;
 
   const billingValid =
-    billing.firstName &&
-    billing.lastName &&
-    billing.address &&
-    billing.postalCode &&
-    billing.city &&
-    billing.country;
+    !!billing.firstName &&
+    !!billing.lastName &&
+    !!billing.address &&
+    !!billing.postalCode &&
+    !!billing.city &&
+    !!billing.country;
 
   if (!cart) return <div>Loading cart...</div>;
   if (!cart.lines || cart.lines.length === 0) {
     return <div>Your cart is empty.</div>;
   }
 
+  // Debug: Log cart lines and merchandise for variant investigation
+  console.log('cart.lines:', cart.lines);
+  cart.lines.forEach((item: any) => {
+    console.log('item.merchandise:', item.merchandise);
+  });
+  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-900">
 
@@ -201,14 +311,16 @@ export default function CheckoutPage() {
             {/* Shipping Address */}
             <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-black dark:text-white">Shipping Address <span className="inline-block align-middle text-xs">●</span></h2>
+                <h2 className="text-3xl font-bold text-black dark:text-white">Shipping Address</h2>
                 {shippingLocked ? (
-                  <button className="text-blue-600 hover:underline ml-2" onClick={() => setShippingLocked(false)}>Edit</button>
+                  <Button variant="subtle" color="blue" className="ml-2" onClick={() => setShippingLocked(false)}>
+                    Edit
+                  </Button>
                 ) : null}
               </div>
               {shippingLocked ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
+                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-neutral-700">
+                  <div className="flex-1 px-0 md:px-6 pb-6 md:pb-0">
                     <h3 className="font-medium text-gray-900 dark:text-white mb-2">Shipping Address</h3>
                     <div className="text-gray-600 dark:text-neutral-300 space-y-1">
                       <p>{shipping.firstName} {shipping.lastName}</p>
@@ -218,14 +330,14 @@ export default function CheckoutPage() {
                       <p>{shipping.state && `${shipping.state}, `}{shipping.country}</p>
                     </div>
                   </div>
-                  <div>
+                  <div className="flex-1 px-0 md:px-6 pb-6 md:pb-0">
                     <h3 className="font-medium text-gray-900 dark:text-white mb-2">Contact</h3>
                     <div className="text-gray-600 dark:text-neutral-300 space-y-1">
                       <p>{shipping.country === 'India' ? `+91 ${shipping.phone}` : shipping.phone}</p>
                       <p>{shipping.email}</p>
                     </div>
                   </div>
-                  <div>
+                  <div className="flex-1 px-0 md:px-6">
                     <h3 className="font-medium text-gray-900 dark:text-white mb-2">Billing Address</h3>
                     <p className="text-gray-600 dark:text-neutral-300">
                       {shipping.billingSame
@@ -239,70 +351,68 @@ export default function CheckoutPage() {
               ) : (
                 <form className="space-y-6" onSubmit={e => { e.preventDefault(); setShippingTouched(true); if (shippingValid && (shipping.billingSame || billingValid)) { setShippingLocked(true); setStep('delivery'); } }}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <TextField name="firstName" value={shipping.firstName} onChange={handleShippingInputChange} required label="First name" variant="outlined" fullWidth margin="dense" />
-                    <TextField name="lastName" value={shipping.lastName} onChange={handleShippingInputChange} required label="Last name" variant="outlined" fullWidth margin="dense" />
-                    <TextField name="address" value={shipping.address} onChange={handleShippingInputChange} required label="Address" variant="outlined" fullWidth margin="dense" />
-                    <TextField name="company" value={shipping.company} onChange={handleShippingInputChange} label="Company" variant="outlined" fullWidth margin="dense" />
-                    <TextField name="postalCode" value={shipping.postalCode} onChange={handleShippingInputChange} required label="Postal code" variant="outlined" fullWidth margin="dense" />
-                    <TextField name="city" value={shipping.city} onChange={handleShippingInputChange} required label="City" variant="outlined" fullWidth margin="dense" />
-                    <TextField select name="country" value={shipping.country} onChange={handleShippingSelectChange} label="Country" variant="outlined" fullWidth margin="dense">
-                      <MenuItem value="India">India</MenuItem>
-                    </TextField>
-                    <TextField select name="state" value={shipping.state} onChange={handleShippingSelectChange} required label="State" variant="outlined" fullWidth margin="dense">
-                      <MenuItem value="">Select a state</MenuItem>
-                      {INDIAN_STATES.map((state) => (
-                        <MenuItem key={state} value={state}>{state}</MenuItem>
-                      ))}
-                    </TextField>
+                    <TextInput name="firstName" value={shipping.firstName} onChange={handleShippingInputChange} required label="First name" error={shippingTouched && !shipping.firstName ? 'First name is required' : undefined} />
+                    <TextInput name="lastName" value={shipping.lastName} onChange={handleShippingInputChange} required label="Last name" error={shippingTouched && !shipping.lastName ? 'Last name is required' : undefined} />
+                    <TextInput name="address" value={shipping.address} onChange={handleShippingInputChange} required label="Address" error={shippingTouched && !shipping.address ? 'Address is required' : undefined} />
+                    <TextInput name="company" value={shipping.company} onChange={handleShippingInputChange} label="Company" />
+                    <TextInput name="postalCode" value={shipping.postalCode} onChange={handleShippingInputChange} required label="Postal code" error={shippingTouched && !shipping.postalCode ? 'Postal code is required' : undefined} />
+                    <TextInput name="city" value={shipping.city} onChange={handleShippingInputChange} required label="City" error={shippingTouched && !shipping.city ? 'City is required' : undefined} />
+                    <Select name="country" value={shipping.country} onChange={value => handleShippingSelectChange('country', value as string)} label="Country" data={[{ value: 'India', label: 'India' }]} required error={shippingTouched && !shipping.country ? 'Country is required' : undefined} />
+                    <Select name="state" value={shipping.state} onChange={value => handleShippingSelectChange('state', value as string)} label="State" data={[{ value: '', label: 'Select a state' }, ...INDIAN_STATES.map(state => ({ value: state, label: state }))]} required error={shippingTouched && !shipping.state ? 'State is required' : undefined} />
                   </div>
-                  <div className="flex items-center mt-2">
-                    <input type="checkbox" name="billingSame" checked={shipping.billingSame} onChange={handleShippingCheckboxChange} className="mr-2" />
-                    <label htmlFor="billingSame" className="text-black dark:text-white">Billing address same as shipping address</label>
-                  </div>
+                  <Checkbox label="Billing address same as shipping address" name="billingSame" checked={shipping.billingSame} onChange={handleShippingCheckboxChange} />
                   {!shipping.billingSame && (
                     <div className="mt-6">
                       <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">Billing Address</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <TextField name="firstName" value={billing.firstName} onChange={handleBillingInputChange} required label="First name" variant="outlined" fullWidth margin="dense" error={billingTouched && !billing.firstName} />
-                        <TextField name="lastName" value={billing.lastName} onChange={handleBillingInputChange} required label="Last name" variant="outlined" fullWidth margin="dense" error={billingTouched && !billing.lastName} />
-                        <TextField name="address" value={billing.address} onChange={handleBillingInputChange} required label="Address" variant="outlined" fullWidth margin="dense" error={billingTouched && !billing.address} />
-                        <TextField name="company" value={billing.company} onChange={handleBillingInputChange} label="Company" variant="outlined" fullWidth margin="dense" />
-                        <TextField name="postalCode" value={billing.postalCode} onChange={handleBillingInputChange} required label="Postal code" variant="outlined" fullWidth margin="dense" error={billingTouched && !billing.postalCode} />
-                        <TextField name="city" value={billing.city} onChange={handleBillingInputChange} required label="City" variant="outlined" fullWidth margin="dense" error={billingTouched && !billing.city} />
-                        <TextField select name="country" value={billing.country} onChange={handleBillingSelectChange} label="Country" variant="outlined" fullWidth margin="dense" error={billingTouched && !billing.country}>
-                          <MenuItem value="India">India</MenuItem>
-                        </TextField>
-                        <TextField select name="state" value={billing.state} onChange={handleBillingSelectChange} required label="State" variant="outlined" fullWidth margin="dense" error={billingTouched && !billing.state}>
-                          <MenuItem value="">Select a state</MenuItem>
-                          {INDIAN_STATES.map((state) => (
-                            <MenuItem key={state} value={state}>{state}</MenuItem>
-                          ))}
-                        </TextField>
+                        <TextInput name="firstName" value={billing.firstName} onChange={handleBillingInputChange} required label="First name" error={billingTouched && !billing.firstName ? 'First name is required' : undefined} />
+                        <TextInput name="lastName" value={billing.lastName} onChange={handleBillingInputChange} required label="Last name" error={billingTouched && !billing.lastName ? 'Last name is required' : undefined} />
+                        <TextInput name="address" value={billing.address} onChange={handleBillingInputChange} required label="Address" error={billingTouched && !billing.address ? 'Address is required' : undefined} />
+                        <TextInput name="company" value={billing.company} onChange={handleBillingInputChange} label="Company" />
+                        <TextInput name="postalCode" value={billing.postalCode} onChange={handleBillingInputChange} required label="Postal code" error={billingTouched && !billing.postalCode ? 'Postal code is required' : undefined} />
+                        <TextInput name="city" value={billing.city} onChange={handleBillingInputChange} required label="City" error={billingTouched && !billing.city ? 'City is required' : undefined} />
+                        <Select name="country" value={billing.country} onChange={value => handleBillingSelectChange('country', value as string)} label="Country" data={[{ value: 'India', label: 'India' }]} required error={billingTouched && !billing.country ? 'Country is required' : undefined} />
+                        <Select name="state" value={billing.state} onChange={value => handleBillingSelectChange('state', value as string)} label="State" data={[{ value: '', label: 'Select a state' }, ...INDIAN_STATES.map(state => ({ value: state, label: state }))]} required error={billingTouched && !billing.state ? 'State is required' : undefined} />
                       </div>
-                      {billingTouched && !billingValid && <div className="text-red-500 text-sm mt-2">Please fill all required billing fields.</div>}
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <TextField name="email" value={shipping.email} onChange={handleShippingInputChange} required label="Email" variant="outlined" fullWidth margin="dense" />
-                    <TextField
-                      name="phone"
-                      value={shipping.phone}
-                      onChange={handleShippingInputChange}
-                      label="Phone"
-                      variant="outlined"
-                      fullWidth
-                      margin="dense"
-                      autoComplete="off"
-                      type="tel"
-                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 10 }}
-                      InputProps={
-                        shipping.country === 'India'
-                          ? { startAdornment: <InputAdornment position="start">+91</InputAdornment> }
-                          : undefined
-                      }
-                    />
+                    <TextInput name="email" value={shipping.email} onChange={handleShippingInputChange} required label="Email" error={shippingTouched && !shipping.email ? 'Email is required' : undefined} />
+                    <Group gap={0} align="flex-end">
+                      {shipping.country === 'India' ? (
+                        <TextInput
+                          name="phone"
+                          value={shipping.phone}
+                          onChange={handleShippingInputChange}
+                          label="Phone"
+                          required
+                          leftSection={<span style={{ fontWeight: 600, fontSize: 14, marginLeft: 4 }}>+91</span>}
+                          maxLength={10}
+                          style={{ flex: 1 }}
+                          error={shippingTouched && !shipping.phone ? 'Phone is required' : undefined}
+                        />
+                      ) : (
+                        <TextInput
+                          name="phone"
+                          value={shipping.phone}
+                          onChange={handleShippingInputChange}
+                          label="Phone"
+                          required
+                          style={{ flex: 1 }}
+                          error={shippingTouched && !shipping.phone ? 'Phone is required' : undefined}
+                        />
+                      )}
+                    </Group>
                   </div>
-                  <button type="submit" className="mt-4 px-6 py-2 rounded bg-black dark:bg-white text-white dark:text-black font-semibold disabled:opacity-60" disabled={!shippingValid || (!shipping.billingSame && !billingValid)}>Continue to delivery</button>
+                  <Button
+                    type="submit"
+                    className="mt-4 px-6 py-2 rounded font-semibold"
+                    color="blue"
+                    fullWidth
+                    disabled={!shippingValid || (!shipping.billingSame && !billingValid)}
+                  >
+                    Continue to delivery
+                  </Button>
                   {shippingTouched && !shippingValid && <div className="text-red-500 text-sm mt-2">Please fill all required shipping fields.</div>}
                 </form>
               )}
@@ -312,136 +422,55 @@ export default function CheckoutPage() {
               <div className="flex items-center mb-6">
                 <h2 className="text-xl font-semibold flex items-center text-black dark:text-white">
                   Delivery
-                  <div className="w-2 h-2 bg-green-500 rounded-full ml-2"></div>
                 </h2>
               </div>
               {shippingLocked ? (
-                <>
-                  {deliveryMethod && deliveryMethod !== '' ? (
-                    <>
-                      <div className="flex justify-between items-center mb-4">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">DELIVERY METHOD</h3>
-                          <p className="text-gray-600 dark:text-neutral-300">
-                            {deliveryMethod === 'standard'
-                              ? 'Standard Shipping ₹0.00 (3-7 days)'
-                              : 'Express Shipping ₹99.00 (1-2 days)'}
-                          </p>
-                        </div>
-                        <button className="text-blue-600 hover:underline ml-2" onClick={() => setDeliveryMethod('')}>Edit</button>
-                      </div>
-                      <button className="mt-6 px-6 py-2 rounded bg-black dark:bg-white text-white dark:text-black font-semibold" onClick={() => setStep('payment')}>Continue to payment</button>
-                    </>
-                  ) : (
-                    <form onSubmit={e => { e.preventDefault(); if (deliveryMethod) setDeliveryMethod(deliveryMethod); }}>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">DELIVERY METHOD</h3>
-                        <div className="space-y-3">
-                          {[
-                            {
-                              id: 'standard',
-                              title: 'Standard Shipping',
-                              subtitle: '₹0.00 (3-7 days)',
-                              value: 'standard',
-                            },
-                            {
-                              id: 'express',
-                              title: 'Express Shipping',
-                              subtitle: '₹99.00 (1-2 days)',
-                              value: 'express',
-                            },
-                          ].map((option) => (
-                            <label
-                              key={option.id}
-                              className={`block border rounded-lg p-4 cursor-pointer transition-colors ${
-                                deliveryMethod === option.value
-                                  ? 'border-gray-300 bg-gray-50 dark:bg-neutral-900'
-                                  : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
-                              }`}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className="flex items-center h-5">
-                                  <input
-                                    type="radio"
-                                    name="deliveryMethod"
-                                    value={option.value}
-                                    checked={deliveryMethod === option.value}
-                                    onChange={(e) => setDeliveryMethod(e.target.value)}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                  />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="text-sm font-medium text-gray-900 dark:text-white">{option.title}</div>
-                                  {option.subtitle && <div className="text-sm text-gray-600 dark:text-neutral-300 mt-1">{option.subtitle}</div>}
-                                </div>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      <button type="submit" className="mt-6 px-6 py-2 rounded bg-black dark:bg-white text-white dark:text-black font-semibold" disabled={!deliveryMethod}>Continue to payment</button>
-                    </form>
-                  )}
-                </>
+                deliveryMethod && deliveryMethod !== '' ? (
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">DELIVERY METHOD</h3>
+                      <p className="text-gray-600 dark:text-neutral-300">
+                        {DELIVERY_OPTIONS.find(opt => opt.value === deliveryMethod)?.title} {DELIVERY_OPTIONS.find(opt => opt.value === deliveryMethod)?.subtitle}
+                      </p>
+                    </div>
+                    <Button variant="subtle" color="blue" onClick={() => setDeliveryMethod('')}>Edit</Button>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">DELIVERY METHOD</h3>
+                    <DeliveryRadioGroup value={deliveryMethod} onChange={setDeliveryMethod} />
+                  </div>
+                )
               ) : (
                 <div className="text-gray-400 dark:text-neutral-500 italic">Please complete shipping address to select delivery method.</div>
               )}
             </div>
 
-            {/* Payment (always visible, locked until delivery is complete) */}
+            {/* Payment (locked state like delivery) */}
             <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-6 text-black dark:text-white">Payment</h2>
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide">PAYMENT OPTIONS</h3>
-                <div className="space-y-3">
-                  {[
-                    {
-                      id: 'razorpay',
-                      title: 'Pay With Razorpay',
-                      subtitle: 'Credit card / Debit card / Net Banking / UPI',
-                      value: 'razorpay',
-                    },
-                    {
-                      id: 'cod',
-                      title: 'Cash on delivery',
-                      value: 'cod',
-                    },
-                  ].map((option) => (
-                    <label
-                      key={option.id}
-                      className={`block border rounded-lg p-4 cursor-pointer transition-colors ${
-                        payment === option.value
-                          ? 'border-gray-300 bg-gray-50 dark:bg-neutral-900'
-                          : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
-                      } ${!shippingLocked || !deliveryMethod ? 'opacity-60 pointer-events-none' : ''}`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="flex items-center h-5">
-                          <input
-                            type="radio"
-                            name="payment"
-                            value={option.value}
-                            checked={payment === option.value}
-                            onChange={(e) => setPayment(e.target.value)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                            disabled={!shippingLocked || !deliveryMethod}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{option.title}</div>
-                          {option.subtitle && <div className="text-sm text-gray-600 dark:text-neutral-300 mt-1">{option.subtitle}</div>}
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
+              <div className="flex items-center mb-6">
+                <h2 className="text-xl font-semibold flex items-center text-black dark:text-white">Payment Options</h2>
               </div>
-              <button className="w-full bg-gray-200 dark:bg-neutral-700 text-gray-500 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600 rounded py-2 font-semibold mt-6" disabled={!payment || !shippingLocked || !deliveryMethod}>Continue to review</button>
-            </div>
-
-            {/* Review */}
-            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-400 dark:text-neutral-500">Review</h2>
+              {shippingLocked && deliveryMethod ? (
+                payment ? (
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">PAYMENT METHOD</h3>
+                      <p className="text-gray-600 dark:text-neutral-300">
+                        {PAYMENT_OPTIONS.find(opt => opt.value === payment)?.title} {PAYMENT_OPTIONS.find(opt => opt.value === payment)?.subtitle}
+                      </p>
+                    </div>
+                    <Button variant="subtle" color="blue" onClick={() => setPayment('')}>Edit</Button>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">PAYMENT OPTIONS</h3>
+                    <PaymentRadioGroup value={payment} onChange={setPayment} />
+                  </div>
+                )
+              ) : (
+                <div className="text-gray-400 dark:text-neutral-500 italic">Please complete delivery selection to choose payment method.</div>
+              )}
             </div>
           </div>
 
@@ -481,7 +510,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-gray-900 dark:text-white">{item.merchandise.product.title}</h3>
-                      <p className="text-sm text-gray-600 dark:text-neutral-300">Variant: {item.merchandise.title}</p>
+                      <p className="text-sm text-gray-600 dark:text-neutral-300">Variant: {item.variant_title || "N/A"}</p>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-sm text-gray-600 dark:text-neutral-300">{item.quantity}x <Price amount={(item.unit_price * item.quantity).toString()} currencyCode={cart.region?.currency_code?.toUpperCase() ?? 'USD'} /></span>
                         <span className="font-medium text-black dark:text-white"><Price amount={(item.unit_price * item.quantity).toString()} currencyCode={cart.region?.currency_code?.toUpperCase() ?? 'USD'} /></span>
@@ -505,43 +534,48 @@ export default function CheckoutPage() {
               <div className="mb-2">
                 <div className="flex items-center justify-between cursor-pointer select-none" onClick={() => setPromoOpen((v) => !v)}>
                   <span className="font-semibold text-base text-black dark:text-white">Add a coupon</span>
-                  <svg className={`w-5 h-5 transition-transform ${promoOpen ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className={`w-5 h-5 transition-transform ${promoOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
                 {promoOpen && (
                   <div className="mt-4 flex flex-col gap-2">
-                    <div className="flex gap-2 items-stretch">
-                      <TextField
+                    <div className="flex flex-col gap-0">
+                      <TextInput
                         name="promoCode"
                         value={promoCode}
                         onChange={e => { setPromoCode(e.target.value); setPromoError(''); setPromoApplied(false); }}
-                        required
                         label="Promo code"
-                        variant="outlined"
-                        fullWidth
-                        margin="none"
-                        size="small"
-                        error={!!promoError}
-                        helperText={promoError || (promoApplied ? 'Coupon applied!' : '')}
-                        InputProps={{
-                          style: { height: 40, alignItems: 'center' },
-                        }}
-                        FormHelperTextProps={{ style: { marginLeft: 0 } }}
+                        placeholder="Enter coupon code"
+                        error={undefined}
+                        description={undefined}
                       />
-                      <button
-                        className={`px-6 rounded bg-black text-white font-bold text-base transition-colors flex items-center justify-center ${promoApplied ? 'opacity-60 cursor-not-allowed' : 'hover:bg-gray-900'}`}
-                        style={{ minWidth: 100, height: 40, marginTop: 0 }}
+                      <div className="min-h-[22px] text-xs mt-1">
+                        {promoError && <div className="text-red-600 dark:text-red-400">{promoError}</div>}
+                        {promoApplied && !promoError && <div className="text-green-600 dark:text-green-400">Coupon applied!</div>}
+                      </div>
+                      <Button
+                        className="w-full mt-2 px-6 py-2 rounded bg-black dark:bg-white text-white dark:text-black font-semibold disabled:opacity-60"
                         onClick={handleApplyPromo}
                         disabled={promoApplied}
                         type="button"
                       >
-                        Apply
-                      </button>
+                        Apply Coupon
+                      </Button>
                     </div>
                   </div>
                 )}
               </div>
+              {/* Place Order Button */}
+              <div className="border-t border-gray-200 dark:border-neutral-700 my-3"></div>
+              <Button
+                className="w-full mt-4 px-6 py-2 rounded bg-blue-600 dark:bg-blue-500 text-white font-semibold disabled:opacity-60"
+                onClick={handlePlaceOrder}
+                disabled={!payment || !shippingLocked || !deliveryMethod}
+                type="button"
+              >
+                Place Order
+              </Button>
             </div>
           </div>
         </div>

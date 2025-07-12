@@ -124,7 +124,7 @@ export default function CartModal({ cart }: { cart: Cart | undefined }) {
                               <div className="flex flex-1 flex-col text-base">
                                 <span className="leading-tight">{item.merchandise.product.title}</span>
                                 {item.merchandise.title !== DEFAULT_OPTION && (
-                                  <p className="text-sm text-neutral-500 dark:text-neutral-400">{item.merchandise.title}</p>
+                                  <p className="text-sm text-neutral-500 dark:text-neutral-400">{item.variant_title}</p>
                                 )}
                               </div>
                             </Link>
