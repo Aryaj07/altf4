@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import type { ChangeEvent } from 'react';
 import { TextInput, Select, Checkbox, Button, Group } from '@mantine/core';
+import { UpdateEmail } from './update-email';
+import CheckoutAddressStep from './address';
 
 const handlePlaceOrder = (payment: string) => {
   if (payment === 'razorpay') {
@@ -118,41 +120,9 @@ function DeliveryRadioGroup({ value, onChange }: { value: string; onChange: (val
 }
 
 
-// List of Indian states and union territories
-const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
-  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
-  'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
-  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
-];
 
-type ShippingType = {
-  firstName: string;
-  lastName: string;
-  address: string;
-  company: string;
-  postalCode: string;
-  city: string;
-  country: string;
-  state: string;
-  billingSame: boolean;
-  email: string;
-  phone: string;
-};
-type BillingType = {
-  firstName: string;
-  lastName: string;
-  address: string;
-  company: string;
-  postalCode: string;
-  city: string;
-  country: string;
-  state: string;
-};
+
+
 
 
 export default function CheckoutPage() {
@@ -184,57 +154,9 @@ export default function CheckoutPage() {
     }
     return 'standard';
   });
-  const [shipping, setShipping] = useState<ShippingType>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = window.sessionStorage.getItem('checkout-shipping');
-      if (saved) return JSON.parse(saved);
-    }
-    return {
-      firstName: '',
-      lastName: '',
-      address: '',
-      company: '',
-      postalCode: '',
-      city: '',
-      country: 'India',
-      state: '',
-      billingSame: true,
-      email: '',
-      phone: '',
-    };
-  });
-  const [billing, setBilling] = useState<BillingType>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = window.sessionStorage.getItem('checkout-billing');
-      if (saved) return JSON.parse(saved);
-    }
-    return {
-      firstName: '',
-      lastName: '',
-      address: '',
-      company: '',
-      postalCode: '',
-      city: '',
-      country: 'India',
-      state: '',
-    };
-  });
-  const [shippingTouched, setShippingTouched] = useState(false);
-  const [billingTouched, setBillingTouched] = useState(false);
-  const [step, setStep] = useState<'shipping' | 'delivery' | 'payment'>('shipping');
-  const [shippingLocked, setShippingLocked] = useState(false);
 
-  // Persist shipping and billing to sessionStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('checkout-shipping', JSON.stringify(shipping));
-    }
-  }, [shipping]);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('checkout-billing', JSON.stringify(billing));
-    }
-  }, [billing]);
+  // LIFTED STATE: shippingLocked
+  const [shippingLocked, setShippingLocked] = useState(false);
 
   // Persist delivery method
   useEffect(() => {
@@ -243,179 +165,34 @@ export default function CheckoutPage() {
     }
   }, [deliveryMethod]);
 
-  // Mantine input handlers
-  const handleShippingInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (name === 'phone' && shipping.country === 'India') {
-      let clean = value.replace(/\D/g, '');
-      if (clean.startsWith('91')) {
-        clean = clean.slice(2);
-      }
-      setShipping((prev: ShippingType) => ({ ...prev, phone: clean }));
-    } else {
-      setShipping((prev: ShippingType) => ({ ...prev, [name]: value }));
-    }
-  };
-  const handleShippingSelectChange = (name: string, value: string) => {
-    setShipping((prev: ShippingType) => ({ ...prev, [name]: value }));
-  };
-  const handleShippingCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setShipping((prev: ShippingType) => ({ ...prev, billingSame: e.target.checked }));
-  };
-
-  const handleBillingInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setBilling((prev: BillingType) => ({ ...prev, [name]: value }));
-    setBillingTouched(true);
-  };
-  const handleBillingSelectChange = (name: string, value: string) => {
-    setBilling((prev: BillingType) => ({ ...prev, [name]: value }));
-    setBillingTouched(true);
-  };
-
-  const shippingValid =
-    !!shipping.firstName &&
-    !!shipping.lastName &&
-    !!shipping.address &&
-    !!shipping.postalCode &&
-    !!shipping.city &&
-    !!shipping.country &&
-    !!shipping.email;
-
-  const billingValid =
-    !!billing.firstName &&
-    !!billing.lastName &&
-    !!billing.address &&
-    !!billing.postalCode &&
-    !!billing.city &&
-    !!billing.country;
-
   if (!cart) return <div>Loading cart...</div>;
   if (!cart.lines || cart.lines.length === 0) {
     return <div>Your cart is empty.</div>;
   }
 
-  // Debug: Log cart lines and merchandise for variant investigation
-  console.log('cart.lines:', cart.lines);
-  cart.lines.forEach((item: any) => {
-    console.log('item.merchandise:', item.merchandise);
-  });
-  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-900">
 
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Checkout Form */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Update Email */}
+            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-black dark:text-white">Email Address</h2>
+              </div>
+              <form className="space-y-6">
+                <UpdateEmail />
+              </form>
+            </div>
             {/* Shipping Address */}
             <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold text-black dark:text-white">Shipping Address</h2>
-                {shippingLocked ? (
-                  <Button variant="subtle" color="blue" className="ml-2" onClick={() => setShippingLocked(false)}>
-                    Edit
-                  </Button>
-                ) : null}
               </div>
-              {shippingLocked ? (
-                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-neutral-700">
-                  <div className="flex-1 px-0 md:px-6 pb-6 md:pb-0">
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Shipping Address</h3>
-                    <div className="text-gray-600 dark:text-neutral-300 space-y-1">
-                      <p>{shipping.firstName} {shipping.lastName}</p>
-                      <p>{shipping.address}</p>
-                      {shipping.company && <p>{shipping.company}</p>}
-                      <p>{shipping.postalCode}, {shipping.city}</p>
-                      <p>{shipping.state && `${shipping.state}, `}{shipping.country}</p>
-                    </div>
-                  </div>
-                  <div className="flex-1 px-0 md:px-6 pb-6 md:pb-0">
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Contact</h3>
-                    <div className="text-gray-600 dark:text-neutral-300 space-y-1">
-                      <p>{shipping.country === 'India' ? `+91 ${shipping.phone}` : shipping.phone}</p>
-                      <p>{shipping.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex-1 px-0 md:px-6">
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Billing Address</h3>
-                    <p className="text-gray-600 dark:text-neutral-300">
-                      {shipping.billingSame
-                        ? 'Billing- and delivery address are the same.'
-                        : billing.firstName
-                          ? `${billing.firstName} ${billing.lastName}, ${billing.address}${billing.company ? ', ' + billing.company : ''}, ${billing.postalCode}, ${billing.city}, ${billing.state ? billing.state + ', ' : ''}${billing.country}`
-                          : 'Not provided'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <form className="space-y-6" onSubmit={e => { e.preventDefault(); setShippingTouched(true); if (shippingValid && (shipping.billingSame || billingValid)) { setShippingLocked(true); setStep('delivery'); } }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <TextInput name="firstName" value={shipping.firstName} onChange={handleShippingInputChange} required label="First name" error={shippingTouched && !shipping.firstName ? 'First name is required' : undefined} />
-                    <TextInput name="lastName" value={shipping.lastName} onChange={handleShippingInputChange} required label="Last name" error={shippingTouched && !shipping.lastName ? 'Last name is required' : undefined} />
-                    <TextInput name="address" value={shipping.address} onChange={handleShippingInputChange} required label="Address" error={shippingTouched && !shipping.address ? 'Address is required' : undefined} />
-                    <TextInput name="company" value={shipping.company} onChange={handleShippingInputChange} label="Company" />
-                    <TextInput name="postalCode" value={shipping.postalCode} onChange={handleShippingInputChange} required label="Postal code" error={shippingTouched && !shipping.postalCode ? 'Postal code is required' : undefined} />
-                    <TextInput name="city" value={shipping.city} onChange={handleShippingInputChange} required label="City" error={shippingTouched && !shipping.city ? 'City is required' : undefined} />
-                    <Select name="country" value={shipping.country} onChange={value => handleShippingSelectChange('country', value as string)} label="Country" data={[{ value: 'India', label: 'India' }]} required error={shippingTouched && !shipping.country ? 'Country is required' : undefined} />
-                    <Select name="state" value={shipping.state} onChange={value => handleShippingSelectChange('state', value as string)} label="State" data={[{ value: '', label: 'Select a state' }, ...INDIAN_STATES.map(state => ({ value: state, label: state }))]} required error={shippingTouched && !shipping.state ? 'State is required' : undefined} />
-                  </div>
-                  <Checkbox label="Billing address same as shipping address" name="billingSame" checked={shipping.billingSame} onChange={handleShippingCheckboxChange} />
-                  {!shipping.billingSame && (
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">Billing Address</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <TextInput name="firstName" value={billing.firstName} onChange={handleBillingInputChange} required label="First name" error={billingTouched && !billing.firstName ? 'First name is required' : undefined} />
-                        <TextInput name="lastName" value={billing.lastName} onChange={handleBillingInputChange} required label="Last name" error={billingTouched && !billing.lastName ? 'Last name is required' : undefined} />
-                        <TextInput name="address" value={billing.address} onChange={handleBillingInputChange} required label="Address" error={billingTouched && !billing.address ? 'Address is required' : undefined} />
-                        <TextInput name="company" value={billing.company} onChange={handleBillingInputChange} label="Company" />
-                        <TextInput name="postalCode" value={billing.postalCode} onChange={handleBillingInputChange} required label="Postal code" error={billingTouched && !billing.postalCode ? 'Postal code is required' : undefined} />
-                        <TextInput name="city" value={billing.city} onChange={handleBillingInputChange} required label="City" error={billingTouched && !billing.city ? 'City is required' : undefined} />
-                        <Select name="country" value={billing.country} onChange={value => handleBillingSelectChange('country', value as string)} label="Country" data={[{ value: 'India', label: 'India' }]} required error={billingTouched && !billing.country ? 'Country is required' : undefined} />
-                        <Select name="state" value={billing.state} onChange={value => handleBillingSelectChange('state', value as string)} label="State" data={[{ value: '', label: 'Select a state' }, ...INDIAN_STATES.map(state => ({ value: state, label: state }))]} required error={billingTouched && !billing.state ? 'State is required' : undefined} />
-                      </div>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <TextInput name="email" value={shipping.email} onChange={handleShippingInputChange} required label="Email" error={shippingTouched && !shipping.email ? 'Email is required' : undefined} />
-                    <Group gap={0} align="flex-end">
-                      {shipping.country === 'India' ? (
-                        <TextInput
-                          name="phone"
-                          value={shipping.phone}
-                          onChange={handleShippingInputChange}
-                          label="Phone"
-                          required
-                          leftSection={<span style={{ fontWeight: 600, fontSize: 14, marginLeft: 4 }}>+91</span>}
-                          maxLength={10}
-                          style={{ flex: 1 }}
-                          error={shippingTouched && !shipping.phone ? 'Phone is required' : undefined}
-                        />
-                      ) : (
-                        <TextInput
-                          name="phone"
-                          value={shipping.phone}
-                          onChange={handleShippingInputChange}
-                          label="Phone"
-                          required
-                          style={{ flex: 1 }}
-                          error={shippingTouched && !shipping.phone ? 'Phone is required' : undefined}
-                        />
-                      )}
-                    </Group>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="mt-4 px-6 py-2 rounded font-semibold"
-                    color="blue"
-                    fullWidth
-                    disabled={!shippingValid || (!shipping.billingSame && !billingValid)}
-                  >
-                    Continue to delivery
-                  </Button>
-                  {shippingTouched && !shippingValid && <div className="text-red-500 text-sm mt-2">Please fill all required shipping fields.</div>}
-                </form>
-              )}
+                <CheckoutAddressStep />
             </div>
             {/* Delivery (always visible, locked until shipping is submitted) */}
             <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6 opacity-100">

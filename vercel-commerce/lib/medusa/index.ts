@@ -216,7 +216,7 @@ const reshapeLineItem = (lineItem: MedusaLineItem, currency_code: string): CartI
 
   return {
     ...lineItem,
-    merchandise,
+    merchandise: merchandise as any,
     cost,
     quantity
   };
