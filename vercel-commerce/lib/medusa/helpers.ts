@@ -42,7 +42,7 @@ export const calculateVariantAmount = (variant: MedusaProductVariant | undefined
 };
 
 // we should probably add a more extensive list
-const noDivisionCurrencies = ['krw', 'jpy', 'vnd', 'eur', 'usd'];
+const noDivisionCurrencies = ['krw', 'jpy', 'vnd', 'eur', 'usd', 'inr'];
 
 export const convertToDecimal = (amount: number, currencyCode = 'USD') => {
   const divisor = noDivisionCurrencies.includes(currencyCode.toLowerCase()) ? 1 : 100;

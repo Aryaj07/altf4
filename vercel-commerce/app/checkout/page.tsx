@@ -3,13 +3,18 @@
 import { useCart } from 'components/cart/cart-context';
 import Price from 'components/price-new';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { TextInput, Select, Checkbox, Button, Group } from '@mantine/core';
 import { UpdateEmail } from './update-email';
-import CheckoutAddressStep from './address';
 
-const handlePlaceOrder = (payment: string) => {
+import CheckoutAddressStep from './address';
+import CheckoutShippingStep from './delivery';
+import CheckoutPaymentStep from './payment';
+
+
+const handlePlaceOrder = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, payment: string) => {
+  e.preventDefault();
   if (payment === 'razorpay') {
     // TODO: Integrate Razorpay payment flow here
     alert('Proceeding to Razorpay payment...');
@@ -33,19 +38,7 @@ const PAYMENT_OPTIONS = [
   },
 ];
 
-// Delivery options for delivery radio group
-const DELIVERY_OPTIONS = [
-  {
-    value: 'standard',
-    title: 'Standard Shipping',
-    subtitle: '₹0.00 (3-7 days)',
-  },
-  {
-    value: 'express',
-    title: 'Express Shipping',
-    subtitle: '₹99.00 (1-2 days)',
-  },
-];
+
 
 function PaymentRadioGroup({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   return (
@@ -83,41 +76,7 @@ function PaymentRadioGroup({ value, onChange }: { value: string; onChange: (val:
   );
 }
 
-function DeliveryRadioGroup({ value, onChange }: { value: string; onChange: (val: string) => void }) {
-  return (
-    <div className="space-y-3">
-      {DELIVERY_OPTIONS.map((option) => {
-        const checked = value === option.value;
-        return (
-          <label key={option.value} className="block w-full">
-            <input
-              type="radio"
-              name="delivery"
-              value={option.value}
-              checked={checked}
-              onChange={() => onChange(option.value)}
-              className="sr-only"
-            />
-            <div
-              className={[
-                'w-full rounded-lg border p-4 cursor-pointer transition-colors flex flex-col',
-                checked
-                  ? 'border-blue-500 bg-gray-100 dark:bg-neutral-800 shadow-sm'
-                  : 'border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900',
-                checked ? 'ring-2 ring-blue-500' : '',
-              ].join(' ')}
-            >
-              <span className="font-bold text-black dark:text-white">{option.title}</span>
-              {option.subtitle && (
-                <span className="text-xs text-gray-600 dark:text-neutral-300 mt-1">{option.subtitle}</span>
-              )}
-            </div>
-          </label>
-        );
-      })}
-    </div>
-  );
-}
+
 
 
 
@@ -147,23 +106,12 @@ export default function CheckoutPage() {
     }
   };
   const [payment, setPayment] = useState('razorpay');
-  const [deliveryMethod, setDeliveryMethod] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = window.sessionStorage.getItem('checkout-delivery-method');
-      if (saved) return saved;
-    }
-    return 'standard';
-  });
+
 
   // LIFTED STATE: shippingLocked
   const [shippingLocked, setShippingLocked] = useState(false);
 
-  // Persist delivery method
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('checkout-delivery-method', deliveryMethod);
-    }
-  }, [deliveryMethod]);
+
 
   if (!cart) return <div>Loading cart...</div>;
   if (!cart.lines || cart.lines.length === 0) {
@@ -195,32 +143,12 @@ export default function CheckoutPage() {
                 <CheckoutAddressStep />
             </div>
             {/* Delivery (always visible, locked until shipping is submitted) */}
-            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6 opacity-100">
-              <div className="flex items-center mb-6">
-                <h2 className="text-xl font-semibold flex items-center text-black dark:text-white">
-                  Delivery
-                </h2>
+            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-black dark:text-white">Delivery</h2>
               </div>
-              {shippingLocked ? (
-                deliveryMethod && deliveryMethod !== '' ? (
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">DELIVERY METHOD</h3>
-                      <p className="text-gray-600 dark:text-neutral-300">
-                        {DELIVERY_OPTIONS.find(opt => opt.value === deliveryMethod)?.title} {DELIVERY_OPTIONS.find(opt => opt.value === deliveryMethod)?.subtitle}
-                      </p>
-                    </div>
-                    <Button variant="subtle" color="blue" onClick={() => setDeliveryMethod('')}>Edit</Button>
-                  </div>
-                ) : (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">DELIVERY METHOD</h3>
-                    <DeliveryRadioGroup value={deliveryMethod} onChange={setDeliveryMethod} />
-                  </div>
-                )
-              ) : (
-                <div className="text-gray-400 dark:text-neutral-500 italic">Please complete shipping address to select delivery method.</div>
-              )}
+              {/* New shipping step component */}
+              <CheckoutShippingStep />
             </div>
 
             {/* Payment (locked state like delivery) */}
@@ -228,26 +156,7 @@ export default function CheckoutPage() {
               <div className="flex items-center mb-6">
                 <h2 className="text-xl font-semibold flex items-center text-black dark:text-white">Payment Options</h2>
               </div>
-              {shippingLocked && deliveryMethod ? (
-                payment ? (
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">PAYMENT METHOD</h3>
-                      <p className="text-gray-600 dark:text-neutral-300">
-                        {PAYMENT_OPTIONS.find(opt => opt.value === payment)?.title} {PAYMENT_OPTIONS.find(opt => opt.value === payment)?.subtitle}
-                      </p>
-                    </div>
-                    <Button variant="subtle" color="blue" onClick={() => setPayment('')}>Edit</Button>
-                  </div>
-                ) : (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white tracking-wide mb-2">PAYMENT OPTIONS</h3>
-                    <PaymentRadioGroup value={payment} onChange={setPayment} />
-                  </div>
-                )
-              ) : (
-                <div className="text-gray-400 dark:text-neutral-500 italic">Please complete delivery selection to choose payment method.</div>
-              )}
+              <CheckoutPaymentStep />
             </div>
           </div>
 
@@ -347,8 +256,8 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-200 dark:border-neutral-700 my-3"></div>
               <Button
                 className="w-full mt-4 px-6 py-2 rounded bg-blue-600 dark:bg-blue-500 text-white font-semibold disabled:opacity-60"
-                onClick={handlePlaceOrder}
-                disabled={!payment || !shippingLocked || !deliveryMethod}
+                onClick={e => handlePlaceOrder(e, payment)}
+                disabled={!payment || !shippingLocked}
                 type="button"
               >
                 Place Order

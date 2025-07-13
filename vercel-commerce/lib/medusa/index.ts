@@ -242,7 +242,6 @@ const reshapeProduct = (product: MedusaProduct): Product => {
     currencyCode = variant.prices?.[0]?.currency_code.toUpperCase() ?? 'USD';
     amount = convertToDecimal(variant.prices[0].amount, currencyCode).toString();
   }
-
   const priceRange = {
     maxVariantPrice: {
       amount,
@@ -330,7 +329,6 @@ const reshapeCategory = (category: ProductCategory): ProductCollection => {
   const path = `/search/${category.handle}`;
   const updatedAt = category.updated_at;
   const title = category.name;
-
   return {
     ...category,
     description,

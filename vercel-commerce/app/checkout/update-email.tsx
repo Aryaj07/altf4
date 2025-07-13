@@ -8,7 +8,13 @@ export function UpdateEmail() {
   const { cart, setCart } = useCart();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [locked, setLocked] = useState(false);
+  const [locked, setLocked] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = window.sessionStorage.getItem('updateEmailLocked');
+      return stored === 'true';
+    }
+    return false;
+  });
   const [success, setSuccess] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -16,7 +22,13 @@ export function UpdateEmail() {
     if (cart && !cart.items?.length) {
       // TODO redirect to another path
     }
-  }, [cart])
+  }, [cart]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('updateEmailLocked', locked ? 'true' : 'false');
+    }
+  }, [locked]);
 
   // Simple email regex for validation
   const validateEmail = (value: string) => {
@@ -70,6 +82,9 @@ export function UpdateEmail() {
             setCart(data.cart); // fallback
           }
           setLocked(true);
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem('updateEmailLocked', 'true');
+          }
           setSuccess(true);
         }
       })
@@ -93,10 +108,18 @@ export function UpdateEmail() {
               <div className="text-green-600 dark:text-green-400 font-semibold">Email added successfully!</div>
             )}
             <Button
-              size="xs"
+              size="s"
               variant="subtle"
               color="blue"
-              onClick={() => { setLocked(false); setSuccess(false); setEmail(cart?.email || ""); setEmailError(null); }}
+              onClick={() => {
+                setLocked(false);
+                if (typeof window !== 'undefined') {
+                  window.sessionStorage.setItem('updateEmailLocked', 'false');
+                }
+                setSuccess(false);
+                setEmail(cart?.email || "");
+                setEmailError(null);
+              }}
               className="ml-auto"
             >
               Edit
