@@ -64,40 +64,10 @@ export default function CheckoutShippingStep() {
     }
   }, [locked]);
 
-  const calculateShippingPrice = async (optionId: string) => {
-    if (!cart) return;
-
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/cart/calculate-shipping`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cartId: cart.id,
-          optionId,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const price = data.shipping_method?.price;
-
-        if (typeof price === "number") {
-          setCalculatedPrices((prev) => ({
-            ...prev,
-            [optionId]: price,
-          }));
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   const handleSelectShippingOption = (optionId: string) => {
     setSelectedShippingOption(optionId);
-    calculateShippingPrice(optionId);
   };
 
   const setShipping = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {

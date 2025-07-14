@@ -3,12 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const { cartId, code } = body;
 
-    const { payment_collection_id, provider_id } = body;
-
-    if (!payment_collection_id || !provider_id) {
+    if (!cartId || !code) {
       return NextResponse.json(
-        { error: "Missing payment_collection_id or provider_id" },
+        { error: "Missing cartId or promotion code" },
         { status: 400 }
       );
     }
@@ -17,7 +16,7 @@ export async function POST(req: NextRequest) {
       process.env.MEDUSA_BACKEND_URL || "http://localhost:9000";
 
     const res = await fetch(
-      `${medusaBackendUrl}/store/payment-collections/${payment_collection_id}/payment-sessions`,
+      `${medusaBackendUrl}/store/carts/${cartId}/promotions`,
       {
         method: "POST",
         headers: {
@@ -28,8 +27,7 @@ export async function POST(req: NextRequest) {
           }),
         },
         body: JSON.stringify({
-          provider_id,
-          data: {}, // optional provider-specific data
+          promo_codes: [code],
         }),
       }
     );
@@ -37,34 +35,23 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const errorText = await res.text();
       return NextResponse.json(
-        { error: res.statusText, details: errorText },
+        {
+          error: res.statusText,
+          details: errorText,
+        },
         { status: res.status }
       );
     }
 
-    const data = await res.json();
-
-    const paymentSession =
-      data?.payment_collection?.payment_sessions?.[0] || null;
-
-    if (!paymentSession) {
-      return NextResponse.json(
-        {
-          error:
-            "Payment session was created on backend but no session was returned.",
-          details: data,
-        },
-        { status: 500 }
-      );
-    }
-
+    // ✅ No need to return the full cart
     return NextResponse.json({
-      payment_session: paymentSession,
+      success: true,
+      message: "Promotion applied successfully",
     });
   } catch (err: any) {
-    console.error(err);
+    console.error("Error applying promotion:", err);
     return NextResponse.json(
-      { error: "Failed to create payment session", details: err?.message },
+      { error: "Failed to apply promotion", details: err?.message },
       { status: 500 }
     );
   }
