@@ -8,16 +8,13 @@ import { CiCreditCard1 } from "react-icons/ci";
 import { TbTruckDelivery } from "react-icons/tb";
 
 export default function PaymentProvidersPage() {
-  const { cart, setCart } = useCart();
+  const { cart } = useCart();
 
   const [providers, setProviders] = useState<any[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string | undefined>();
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [paymentCollectionId, setPaymentCollectionId] = useState<string | null>(null);
-  const [paymentSessionId, setPaymentSessionId] = useState<string | null>(null);
   const [locked, setLocked] = useState(() => {
     if (typeof window !== "undefined") {
       return window.sessionStorage.getItem("paymentStepLocked") === "true";
@@ -30,6 +27,7 @@ export default function PaymentProvidersPage() {
     is_enabled: boolean;
   } | null>(null);
 
+  // ✅ Fetch providers from API
   useEffect(() => {
     if (!cart?.region_id) return;
 
@@ -41,6 +39,8 @@ export default function PaymentProvidersPage() {
       .then((data) => {
         if (data.payment_providers) {
           setProviders(data.payment_providers);
+
+          // Check if cart already has a provider
           const existingProviderId =
             cart?.payment_collection?.payment_sessions?.[0]?.provider_id;
 
@@ -75,11 +75,34 @@ export default function PaymentProvidersPage() {
       .finally(() => setLoadingProviders(false));
   }, [cart?.region_id, cart?.payment_collection?.payment_sessions]);
 
+  // ✅ Keep locked flag in sessionStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("paymentStepLocked", locked ? "true" : "false");
     }
   }, [locked]);
+
+  // ✅ Reload saved provider from sessionStorage on initial page load
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const lockedFromStorage =
+      window.sessionStorage.getItem("paymentStepLocked") === "true";
+    const storedProviderId =
+      window.sessionStorage.getItem("selectedPaymentProviderId");
+
+    if (lockedFromStorage && storedProviderId && providers.length > 0) {
+      const provider = providers.find((p) => p.id === storedProviderId);
+      if (provider) {
+        setSavedProvider({
+          id: provider.id,
+          is_enabled: provider.is_enabled,
+        });
+        setSelectedProviderId(storedProviderId);
+        setLocked(true);
+      }
+    }
+  }, [providers]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !locked) {
@@ -100,72 +123,11 @@ export default function PaymentProvidersPage() {
     setError(null);
 
     try {
-      /**
-       * STEP 1 → CREATE PAYMENT COLLECTION
-       */
-      const collectionRes = await fetch("/api/cart/create-payment-collection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cartId: cart.id,
-        }),
-      });
-
-      const collectionData = await collectionRes.json();
-
-      if (!collectionRes.ok) {
-        setError(collectionData.error || "Failed to create payment collection.");
-        return;
-      }
-
-      const paymentCollectionId = collectionData.payment_collection?.id;
-      if (!paymentCollectionId) {
-        setError("Payment collection was not created properly.");
-        return;
-      }
-
-      setPaymentCollectionId(paymentCollectionId);
-
-      /**
-       * STEP 2 → CREATE PAYMENT SESSION
-       */
-      const sessionRes = await fetch("/api/cart/create-payment-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payment_collection_id: paymentCollectionId,
-          provider_id: selectedProviderId,
-        }),
-      });
-
-      const sessionData = await sessionRes.json();
-
-      if (!sessionRes.ok) {
-        setError(sessionData.error || "Failed to create payment session.");
-        return;
-      }
-
-      const paymentSessionId = sessionData.payment_session?.id;
-
-      if (!paymentSessionId) {
-        setError("Payment session was not created.");
-        return;
-      }
-
-      setPaymentSessionId(paymentSessionId);
-
-      /**
-       * STEP 3 → Refresh the Cart
-       */
-      const updatedCartRes = await fetch(`/api/cart`);
-      const updatedCartData = await updatedCartRes.json();
-
-      if (!updatedCartRes.ok) {
-        setError(updatedCartData.error || "Failed to retrieve updated cart.");
-        return;
-      }
-
-      setCart(updatedCartData);
+      // ✅ Save selection in sessionStorage
+      window.sessionStorage.setItem(
+        "selectedPaymentProviderId",
+        selectedProviderId
+      );
 
       const provider = providers.find(
         (p: any) => p.id === selectedProviderId
@@ -175,12 +137,6 @@ export default function PaymentProvidersPage() {
           id: provider.id,
           is_enabled: provider.is_enabled,
         });
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(
-            "selectedPaymentProviderId",
-            provider.id
-          );
-        }
       }
 
       setLocked(true);
@@ -215,11 +171,13 @@ export default function PaymentProvidersPage() {
         </div>
       );
     }
-    // Fallback for other providers
+
     return (
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center gap-2">
-          <p className="text-gray-900 dark:text-white font-semibold">Cash on Delivery</p>
+          <p className="text-gray-900 dark:text-white font-semibold">
+            Cash on Delivery
+          </p>
         </div>
         <TbTruckDelivery className="h-5 w-auto text-gray-700 dark:text-gray-300" />
       </div>
@@ -234,23 +192,19 @@ export default function PaymentProvidersPage() {
         <div className="text-red-600 dark:text-red-400 mt-2">{error}</div>
       )}
 
-      {locked ? (
+      {locked && savedProvider ? (
         <>
-          {savedProvider && (
-            <div className="flex justify-between border border-blue-500 bg-gray-100 dark:bg-neutral-800 rounded-lg p-4 mb-3">
-              {getProviderContent(savedProvider)}
-            </div>
-          )}
+          <div className="flex justify-between border border-blue-500 bg-gray-100 dark:bg-neutral-800 rounded-lg p-4 mb-3">
+            {getProviderContent(savedProvider)}
+          </div>
 
-          {savedProvider && (
-            <div className="text-green-600 dark:text-green-400 font-semibold mt-4">
-              {savedProvider.id.includes("razorpay") && "Razorpay selected."}
-              {savedProvider.id.includes("stripe") && "Stripe selected."}
-              {savedProvider.id.includes("system_default") && "Manual payment selected."}
-              {!["razorpay", "stripe", "system_default"].some(id => savedProvider.id.includes(id)) &&
-                `Payment provider ${savedProvider.id} selected.`}
-            </div>
-          )}
+          <div className="text-green-600 dark:text-green-400 font-semibold mt-4">
+            {savedProvider.id.includes("razorpay") && "Razorpay selected."}
+            {savedProvider.id.includes("stripe") && "Stripe selected."}
+            {savedProvider.id.includes("system_default") && "Manual payment selected."}
+            {!["razorpay", "stripe", "system_default"].some(id => savedProvider.id.includes(id)) &&
+              `Payment provider ${savedProvider.id} selected.`}
+          </div>
 
           <div className="flex items-center mt-2">
             {success && (

@@ -29,6 +29,7 @@ export function ProductDescription({
           <Price
             amount={price}
             currencyCode={currencyCode}
+            showCurrency={false}
           />
         </div>
       </div>

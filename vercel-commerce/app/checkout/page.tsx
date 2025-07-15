@@ -6,6 +6,8 @@ import CheckoutAddressStep from "./address";
 import CheckoutShippingStep from "./delivery";
 import CheckoutPaymentStep from "./payment";
 import CheckoutCart from "./checkout-cart";
+import CheckoutPlaceOrderButton from "./checkout-place-order-button";
+
 
 
 export default function CheckoutPage() {
@@ -75,6 +77,12 @@ export default function CheckoutPage() {
               </h2>
               <CheckoutCart/>
             </div>
+          </div>
+        </div>
+        {/* Place Order Button - Full width below both columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 mt-8">
+          <div className="col-span-1 lg:col-span-3">
+            <CheckoutPlaceOrderButton cart={cart} />
           </div>
         </div>
       </div>

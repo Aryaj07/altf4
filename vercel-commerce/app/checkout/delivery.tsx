@@ -64,8 +64,6 @@ export default function CheckoutShippingStep() {
     }
   }, [locked]);
 
-  
-
   const handleSelectShippingOption = (optionId: string) => {
     setSelectedShippingOption(optionId);
   };
@@ -120,12 +118,37 @@ export default function CheckoutShippingStep() {
           }
         }
 
+        // ✅ Call create-payment-collection here
+        const createCollectionRes = await fetch("/api/cart/create-payment-collection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cartId: cart.id }),
+        });
+
+        const collectionData = await createCollectionRes.json();
+
+        if (!createCollectionRes.ok || !collectionData.payment_collection?.id) {
+          console.error("Failed to create payment collection:", collectionData.error || "Unknown error");
+          throw new Error("Failed to create payment collection.");
+        }
+
+        const paymentCollectionId = collectionData.payment_collection.id;
+
+        // ✅ Store collection ID in session storage for payment step
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem("paymentCollectionId", paymentCollectionId);
+        }
+
+        console.log("✅ Payment collection created:", paymentCollectionId);
+
         setLocked(true);
         if (typeof window !== "undefined") {
           window.sessionStorage.setItem("shippingStepLocked", "true");
         }
         setSuccess(true);
       }
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }

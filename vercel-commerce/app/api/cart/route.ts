@@ -3,26 +3,27 @@ import { createCart, getCart } from "lib/medusa";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  let cartId = cookies().get("cartId")?.value;
-  let cart;
+  const cookieStore = cookies();
+
+  const cartId = cookieStore.get("cartId")?.value;
+  let cart = null;
 
   if (cartId) {
     cart = await getCart(cartId);
   }
-  
-  if (!cartId || !cart) {
-    cart = await createCart();
-    cookies().set("cartId", cart.id!);
-}
 
-  if (!cartId || !cart) {
+  if (!cart) {
     cart = await createCart();
-    cookies().set("cartId", cart.id!);
+    if (cart?.id) {
+      cookieStore.set("cartId", cart.id);
+    } else {
+      return NextResponse.json(
+        { error: "Failed to create a new cart." },
+        { status: 500 }
+      );
+    }
   }
 
-//console.log("CART: " , cart?.lines?.[0]);
-
-  // ✅ Ensure cart always has region, etc.
   if (!cart.region) {
     return NextResponse.json(
       { error: "Cart is missing region info" },

@@ -25,6 +25,7 @@ const Label = ({
           amount={amount}
           currencyCode={currencyCode}
           currencyCodeClassName="hidden @[275px]/label:inline"
+          showCurrency={false}
         />
       </div>
     </div>

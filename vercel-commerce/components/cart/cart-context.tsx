@@ -5,21 +5,25 @@ import React, {
   useContext,
   useState,
   useCallback,
-  ReactNode,
   Dispatch,
   SetStateAction,
+  ReactNode,
 } from "react";
 
 interface CartContextType {
   cart: any;
   refreshCart: () => Promise<void>;
   setCart: Dispatch<SetStateAction<any>>;
+  suppressAutoOpen: boolean;
+  setSuppressAutoOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 const CartContext = createContext<CartContextType>({
   cart: null,
   refreshCart: async () => {},
   setCart: () => {},
+  suppressAutoOpen: false,
+  setSuppressAutoOpen: () => {},
 });
 
 interface CartProviderProps {
@@ -28,6 +32,7 @@ interface CartProviderProps {
 
 export function CartProvider({ children }: CartProviderProps) {
   const [cart, setCart] = useState<any>(null);
+  const [suppressAutoOpen, setSuppressAutoOpen] = useState<boolean>(false);
 
   const refreshCart = useCallback(async () => {
     try {
@@ -44,7 +49,15 @@ export function CartProvider({ children }: CartProviderProps) {
   }, []);
 
   return (
-    <CartContext.Provider value={{ cart, refreshCart, setCart }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        refreshCart,
+        setCart,
+        suppressAutoOpen,
+        setSuppressAutoOpen,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

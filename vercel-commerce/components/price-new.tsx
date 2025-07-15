@@ -4,27 +4,18 @@ const Price = ({
   amount,
   className,
   currencyCode = 'INR',
-  currencyCodeClassName
+  currencyCodeClassName,
+  showCurrency = true, // <-- Add this prop
 }: {
   amount: string;
   className?: string;
   currencyCode?: string;
   currencyCodeClassName?: string;
+  showCurrency?: boolean; // <-- Add this prop type
 } & React.ComponentProps<'p'>) => {
-  // Ensure we have a valid currency code
   const validCurrencyCode = (currencyCode || 'EUR').toUpperCase();
-  
-  // Use Number to maintain precision better than parseFloat
   const rawAmount = Number(amount);
-  // Round to 2 decimal places to avoid floating point issues
   const validAmount = Number.isFinite(rawAmount) ? Number(rawAmount.toFixed(2)) : 0;
-  
-  // console.log("Price debug:", {
-  //   originalAmount: amount,
-  //   rawAmount,
-  //   validAmount,
-  //   currencyCode: validCurrencyCode
-  // });
 
   return (
     <p suppressHydrationWarning={true} className={className}>
@@ -35,7 +26,9 @@ const Price = ({
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       }).format(validAmount)}`}
-      <span className={clsx('ml-1 inline', currencyCodeClassName)}>{validCurrencyCode}</span>
+      {showCurrency && (
+        <span className={clsx('ml-1 inline', currencyCodeClassName)}>{validCurrencyCode}</span>
+      )}
     </p>
   );
 };
