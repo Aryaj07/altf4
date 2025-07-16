@@ -8,6 +8,7 @@ import React, {
   Dispatch,
   SetStateAction,
   ReactNode,
+  useEffect,
 } from "react";
 
 interface CartContextType {
@@ -16,14 +17,22 @@ interface CartContextType {
   setCart: Dispatch<SetStateAction<any>>;
   suppressAutoOpen: boolean;
   setSuppressAutoOpen: Dispatch<SetStateAction<boolean>>;
+  paymentProviderId?: string;
+  setPaymentProviderId?: Dispatch<SetStateAction<string | undefined>>;
+  paymentStepLocked?: boolean;
+  setPaymentStepLocked?: Dispatch<SetStateAction<boolean>>;
 }
 
 const CartContext = createContext<CartContextType>({
-  cart: null,
+  cart: undefined,
   refreshCart: async () => {},
   setCart: () => {},
   suppressAutoOpen: false,
   setSuppressAutoOpen: () => {},
+  paymentProviderId: undefined,
+  setPaymentProviderId: () => {},
+  paymentStepLocked: false,
+  setPaymentStepLocked: () => {},
 });
 
 interface CartProviderProps {
@@ -31,8 +40,34 @@ interface CartProviderProps {
 }
 
 export function CartProvider({ children }: CartProviderProps) {
-  const [cart, setCart] = useState<any>(null);
+  const [cart, setCart] = useState<any>();
   const [suppressAutoOpen, setSuppressAutoOpen] = useState<boolean>(false);
+
+  // Load initial paymentProviderId from sessionStorage
+  const [paymentProviderId, setPaymentProviderId] = useState<string | undefined>(() => {
+    if (typeof window !== "undefined") {
+      return window.sessionStorage.getItem("selectedPaymentProviderId") || undefined;
+    }
+    return undefined;
+  });
+
+  // Load initial paymentStepLocked from sessionStorage
+  const [paymentStepLocked, setPaymentStepLocked] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return window.sessionStorage.getItem("paymentStepLocked") === "true";
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (paymentProviderId !== undefined) {
+      window.sessionStorage.setItem("selectedPaymentProviderId", paymentProviderId);
+    }
+  }, [paymentProviderId]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem("paymentStepLocked", paymentStepLocked ? "true" : "false");
+  }, [paymentStepLocked]);
 
   const refreshCart = useCallback(async () => {
     try {
@@ -56,6 +91,10 @@ export function CartProvider({ children }: CartProviderProps) {
         setCart,
         suppressAutoOpen,
         setSuppressAutoOpen,
+        paymentProviderId,
+        setPaymentProviderId,
+        paymentStepLocked,
+        setPaymentStepLocked,
       }}
     >
       {children}

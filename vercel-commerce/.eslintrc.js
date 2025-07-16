@@ -1,6 +1,15 @@
 module.exports = {
-  extends: ['next', 'prettier'],
-  plugins: ['unicorn'],
+  env: {
+    browser: true,
+    es2021: true,
+    node: true,
+  },
+  extends: ['next', 'eslint:recommended', 'prettier'],
+  plugins: [],
+  parserOptions: {
+    ecmaVersion: 12,
+    sourceType: 'module',
+  },
   rules: {
     'no-unused-vars': [
       'error',
@@ -8,16 +17,11 @@ module.exports = {
         args: 'after-used',
         caughtErrors: 'none',
         ignoreRestSiblings: true,
-        vars: 'all'
-      }
+        vars: 'all',
+      },
     ],
     'prefer-const': 'error',
     'react-hooks/exhaustive-deps': 'error',
-    'unicorn/filename-case': [
-      'error',
-      {
-        case: 'kebabCase'
-      }
-    ]
-  }
+    // Removed all unicorn rules
+  },
 };

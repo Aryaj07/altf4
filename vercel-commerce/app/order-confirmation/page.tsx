@@ -38,7 +38,7 @@ export default function OrderConfirmationPage() {
     new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: currency || "USD",
-    }).format((amount || 0) / 100);
+    }).format((amount || 0));
 
   if (loading) {
     return (
@@ -76,20 +76,20 @@ export default function OrderConfirmationPage() {
   const estimatedDelivery = ""; // Set if available
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-neutral-900">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Success Header */}
         <div className="text-center mb-8 animate-in fade-in-0 duration-700">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full mb-4 animate-in zoom-in-0 duration-500 delay-200">
-            <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-900/30 rounded-full mb-4 animate-in zoom-in-0 duration-500 delay-200">
+            <CheckCircle className="w-10 h-10 text-green-400" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Order Confirmed!
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
+          <p className="text-lg text-neutral-300 mb-4">
             Thank you for your purchase. We are preparing your order.
           </p>
-          <Badge className="text-sm font-mono px-4 py-2">
+          <Badge className="text-sm font-mono px-4 py-2 bg-neutral-800 text-neutral-200">
             Order ID: {order.display_id || order.id}
           </Badge>
         </div>
@@ -98,26 +98,26 @@ export default function OrderConfirmationPage() {
           {/* Order Details */}
           <div className="grid md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-700 delay-300">
             {/* Customer Information */}
-            <Card className="hover:shadow-lg transition-shadow duration-300">
+            <Card className="bg-neutral-800 text-white hover:shadow-lg transition-shadow duration-300">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-white">
                   <Package className="w-5 h-5" />
                   Order Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                  <p className="font-medium">{customerEmail}</p>
+                  <p className="text-sm text-neutral-400">Email</p>
+                  <p className="font-medium text-white">{customerEmail}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Order Date</p>
-                  <p className="font-medium">{orderDate}</p>
+                  <p className="text-sm text-neutral-400">Order Date</p>
+                  <p className="font-medium text-white">{orderDate}</p>
                 </div>
                 {estimatedDelivery && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Estimated Delivery</p>
-                    <p className="font-medium text-green-600 dark:text-green-400">
+                    <p className="text-sm text-neutral-400">Estimated Delivery</p>
+                    <p className="font-medium text-green-400">
                       {estimatedDelivery}
                     </p>
                   </div>
@@ -126,15 +126,15 @@ export default function OrderConfirmationPage() {
             </Card>
 
             {/* Shipping Address */}
-            <Card className="hover:shadow-lg transition-shadow duration-300">
+            <Card className="bg-neutral-800 text-white hover:shadow-lg transition-shadow duration-300">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-white">
                   <Truck className="w-5 h-5" />
                   Shipping Address
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <address className="not-italic space-y-1">
+                <address className="not-italic space-y-1 text-white">
                   <p className="font-medium">
                     {shipping.first_name} {shipping.last_name}
                   </p>
@@ -151,9 +151,9 @@ export default function OrderConfirmationPage() {
           </div>
 
           {/* Order Items */}
-          <Card className="animate-in slide-in-from-bottom-4 duration-700 delay-500">
+          <Card className="bg-neutral-800 text-white animate-in slide-in-from-bottom-4 duration-700 delay-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 <ShoppingBag className="w-5 h-5" />
                 Order Items
               </CardTitle>
@@ -162,19 +162,19 @@ export default function OrderConfirmationPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px]">Product</TableHead>
-                      <TableHead>Details</TableHead>
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
+                    <TableRow className="border-neutral-700">
+                      <TableHead className="text-neutral-200 w-[100px]">Product</TableHead>
+                      <TableHead className="text-neutral-200">Details</TableHead>
+                      <TableHead className="text-neutral-200 text-center">Qty</TableHead>
+                      <TableHead className="text-neutral-200 text-right">Price</TableHead>
+                      <TableHead className="text-neutral-200 text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {items.map((item: any) => (
                       <TableRow
                         key={item.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        className="border-neutral-700 hover:bg-neutral-800/50 transition-colors"
                       >
                         <TableCell>
                           <Image
@@ -186,26 +186,26 @@ export default function OrderConfirmationPage() {
                             alt={item.title}
                             width={64}
                             height={64}
-                            className="w-16 h-16 object-cover rounded-lg border"
+                            className="w-16 h-16 object-cover rounded-lg border border-neutral-700"
                           />
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-gray-900 dark:text-white">
+                            <p className="font-medium text-white">
                               {item.title}
                             </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-neutral-400">
                               {item.variant?.title || ""}
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center font-medium">
+                        <TableCell className="text-center font-medium text-white">
                           {item.quantity}
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-right font-medium text-white">
                           {formatMoney(item.unit_price, currency)}
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-right font-medium text-white">
                           {formatMoney(item.unit_price * item.quantity, currency)}
                         </TableCell>
                       </TableRow>
@@ -214,24 +214,24 @@ export default function OrderConfirmationPage() {
                 </Table>
               </div>
 
-              <Separator className="my-6" />
+              <Separator className="my-6 bg-neutral-700" />
 
               {/* Order Summary */}
               <div className="space-y-3">
-                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between text-neutral-400">
                   <span>Subtotal</span>
                   <span>{formatMoney(subtotal, currency)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between text-neutral-400">
                   <span>Shipping</span>
                   <span>{formatMoney(shippingTotal, currency)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between text-neutral-400">
                   <span>Tax</span>
                   <span>{formatMoney(taxTotal, currency)}</span>
                 </div>
-                <Separator />
-                <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white">
+                <Separator className="bg-neutral-700" />
+                <div className="flex justify-between text-lg font-bold text-white">
                   <span>Total</span>
                   <span>{formatMoney(total, currency)}</span>
                 </div>
@@ -242,7 +242,7 @@ export default function OrderConfirmationPage() {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in slide-in-from-bottom-4 duration-700 delay-700">
             <Button
-              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-all duration-300 hover:scale-105 px-6 py-3 text-base font-medium rounded"
+              className="bg-blue-500 hover:bg-blue-600 transition-all duration-300 hover:scale-105 px-6 py-3 text-base font-medium rounded"
               asChild
             >
               <a href="/">
@@ -251,7 +251,7 @@ export default function OrderConfirmationPage() {
               </a>
             </Button>
             <Button
-              className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 bg-transparent px-6 py-3 text-base font-medium rounded border"
+              className="bg-transparent hover:bg-neutral-800 transition-all duration-300 hover:scale-105 px-6 py-3 text-base font-medium rounded border border-neutral-700 text-white"
               asChild
             >
               <a href="#">
@@ -262,15 +262,14 @@ export default function OrderConfirmationPage() {
           </div>
 
           {/* Additional Information */}
-          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 animate-in slide-in-from-bottom-4 duration-700 delay-900">
+          <Card className="bg-blue-900/20 border-blue-800 animate-in slide-in-from-bottom-4 duration-700 delay-900">
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
-                <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                <h3 className="font-semibold text-blue-100">
                   What happens next?
                 </h3>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  You ll receive an email confirmation shortly. We ll send you tracking information once your order
-                  ships.
+                <p className="text-sm text-blue-200">
+                  You’ll receive an email confirmation shortly. We’ll send you tracking information once your order ships.
                 </p>
               </div>
             </CardContent>

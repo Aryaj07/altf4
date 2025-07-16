@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
     const medusaBackendUrl =
       process.env.MEDUSA_BACKEND_URL || "http://localhost:9000";
 
-    const res = await fetch(
+    // Step 1 - Try applying the promo code
+    const applyRes = await fetch(
       `${medusaBackendUrl}/store/carts/${cartId}/promotions`,
       {
         method: "POST",
@@ -32,26 +33,69 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    if (!res.ok) {
-      const errorText = await res.text();
+    if (!applyRes.ok) {
+      const errorText = await applyRes.text();
       return NextResponse.json(
         {
-          error: res.statusText,
+          error: applyRes.statusText,
           details: errorText,
         },
-        { status: res.status }
+        { status: applyRes.status }
       );
     }
 
-    // ✅ No need to return the full cart
+    // Step 2 - Fetch the updated cart
+    const cartRes = await fetch(
+      `${medusaBackendUrl}/store/carts/${cartId}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY && {
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY,
+          }),
+        },
+      }
+    );
+
+    if (!cartRes.ok) {
+      return NextResponse.json(
+        { error: "Failed to retrieve cart after applying promotion." },
+        { status: 500 }
+      );
+    }
+
+    const cartData = await cartRes.json();
+
+    // ✅ Check whether promo code is active
+    const promoFound = cartData.cart.promo_codes?.some(
+      (p: any) => p.code?.toLowerCase() === code.toLowerCase()
+    );
+
+    const discountApplied = cartData.cart.discounts?.some(
+      (d: any) =>
+        d.rule?.type !== "free_shipping" &&
+        d.rule?.code?.toLowerCase() === code.toLowerCase()
+    );
+
+    if (!promoFound || !discountApplied) {
+      return NextResponse.json(
+        {
+          error: `Promotion code "${code}" is invalid or not applicable.`,
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Promotion applied successfully",
+      message: `Promotion "${code}" applied successfully.`,
+      discount: discountApplied,
     });
-  } catch (err: any) {
-    console.error("Error applying promotion:", err);
+  } catch (error) {
+    console.error("Error applying promotion:", error);
     return NextResponse.json(
-      { error: "Failed to apply promotion", details: err?.message },
+      { error: "Failed to apply promotion", details: error },
       { status: 500 }
     );
   }

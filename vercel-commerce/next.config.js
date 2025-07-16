@@ -2,10 +2,10 @@
 module.exports = {
   eslint: {
     // Disabling on production builds because we're running checks on PRs via GitHub Actions.
-    ignoreDuringBuilds: true
+    ignoreDuringBuilds: true,
   },
   experimental: {
-    serverActions: true
+    serverActions: true,
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -13,19 +13,19 @@ module.exports = {
       {
         protocol: 'https',
         hostname: 'medusa-public-images.s3.eu-west-1.amazonaws.com',
-        pathname: '/**'
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'medusa-server-testing.s3.amazonaws.com',
-        pathname: '/**'
+        pathname: '/**',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
         port: '9000',
-        pathname: '/static/**'
-      }
-    ]
-  }
+        pathname: '/static/**',
+      },
+    ],
+  },
 };
