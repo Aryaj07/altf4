@@ -3,8 +3,9 @@ import { createCart, getCart } from "lib/medusa";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
+  // Get cartId from cookies
   const cartId = cookieStore.get("cartId")?.value;
   let cart = null;
 

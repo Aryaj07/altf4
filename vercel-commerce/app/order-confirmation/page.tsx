@@ -4,10 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { CheckCircle, Package, ShoppingBag, Truck } from "lucide-react";
-import { Button } from "src/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "src/components/ui/card";
-import { Separator } from "src/components/ui/separator";
-import { Badge } from "src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
+import { Separator } from "@/src/components/ui/separator";
+import { Badge } from "@/src/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "src/components/ui/table";
+} from "@/src/components/ui/table";
 
 export default function OrderConfirmationPage() {
   const searchParams = useSearchParams();
@@ -206,7 +206,7 @@ export default function OrderConfirmationPage() {
                           {formatMoney(item.unit_price, currency)}
                         </TableCell>
                         <TableCell className="text-right font-medium text-white">
-                          {formatMoney(item.unit_price * item.quantity, currency)}
+                          {formatMoney((item.unit_price * item.quantity) + shippingTotal, currency)}
                         </TableCell>
                       </TableRow>
                     ))}

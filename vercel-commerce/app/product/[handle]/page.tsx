@@ -18,9 +18,10 @@ export async function generateMetadata({
 }: {
   params: { handle: string };
 }): Promise<Metadata> {
+  const { handle } = await params;
   try {
 
-    const product = await getProduct(params.handle);
+    const product = await getProduct(handle);
 
     if (!product) {
       console.warn(`Product not found for handle: ${params.handle}`);
@@ -61,9 +62,9 @@ export async function generateMetadata({
 }
 
 export default async function ProductPage({ params }: { params: { handle: string } }) {
+  const { handle } = await params;
   try {
-
-    const product = await getProduct(params.handle);
+    const product = await getProduct(handle);
 
     if (!product) {
       console.warn(`Product not found for handle: ${params.handle}`);

@@ -3,9 +3,10 @@ import { updateCart } from "lib/medusa";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { lineId, variantId, quantity } = await req.json();
+  const { lineId, quantity } = await req.json();
 
-  const cartId = cookies().get("cartId")?.value;
+  const cookieStore = await cookies();
+  const cartId = cookieStore.get("cartId")?.value;
 
   if (!cartId) {
     return NextResponse.json(

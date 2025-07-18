@@ -1,11 +1,10 @@
-// /app/api/order-details/order-confirmation/[orderId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  context: { params: { orderId: string } }
 ) {
-  const { orderId } = params;
+  const { orderId } = await context.params;
 
   if (!orderId) {
     return NextResponse.json(
@@ -33,7 +32,7 @@ export async function GET(
     });
 
     if (!res.ok) {
-      console.error("Error fetching order:", await res.text());
+      console.error(`Order fetch failed for orderId=${orderId}, status=${res.status}`);
       return NextResponse.json(
         { error: "Order not found or Medusa error" },
         { status: res.status }
@@ -44,9 +43,9 @@ export async function GET(
 
     return NextResponse.json(data.order);
   } catch (error: any) {
-    console.error(error);
+    console.error("Order fetch failed:", error?.name || "Unknown error");
     return NextResponse.json(
-      { error: error?.message || "Order fetch failed." },
+      { error: "Order fetch failed." },
       { status: 500 }
     );
   }
