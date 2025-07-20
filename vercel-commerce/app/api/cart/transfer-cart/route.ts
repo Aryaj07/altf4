@@ -1,7 +1,7 @@
 // app/api/cart/transfer/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { sdkServer } from "lib/sdk-server" // this has jwt storage
+import { sdkServer } from "@/lib/sdk/sdk-server" // this has jwt storage
 
 export async function POST(req: NextRequest) {
   const { cartId } = await req.json()

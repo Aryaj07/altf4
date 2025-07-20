@@ -18,6 +18,7 @@ module.exports = {
         caughtErrors: 'none',
         ignoreRestSiblings: true,
         vars: 'all',
+        argsIgnorePattern: "^_"
       },
     ],
     'prefer-const': 'error',

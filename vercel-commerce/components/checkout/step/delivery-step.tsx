@@ -21,7 +21,7 @@ import {
 import type { DeliveryFormData } from "lib/checkout-schema";
 
 interface DeliveryStepProps {
-  onComplete: (values: DeliveryFormData) => void;
+  onComplete: (_values: DeliveryFormData) => void;
 }
 
 export default function DeliveryStep({ onComplete }: DeliveryStepProps) {
@@ -32,7 +32,7 @@ export default function DeliveryStep({ onComplete }: DeliveryStepProps) {
   const [selectedShippingOption, setSelectedShippingOption] = useState<
     string | undefined
   >();
-  const [calculatedPrices, setCalculatedPrices] = useState<
+  const [calculatedPrices] = useState<
     Record<string, number>
   >({});
 

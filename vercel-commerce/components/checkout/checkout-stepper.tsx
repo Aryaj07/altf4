@@ -3,7 +3,7 @@
 
 import { useRouter } from "next/navigation"
 import CheckoutPlaceOrderButton from "./checkout-button"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Stepper,
   Container,
@@ -56,6 +56,11 @@ export function CheckoutStepper() {
     delivery: null,
     payment: null,
   })
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Form instances for each step
   const emailForm = useForm<EmailFormData>({
@@ -200,6 +205,8 @@ export function CheckoutStepper() {
   // or for the modal's "Place Order" button, not for rendering the summary directly on the page.
   const allRequiredStepsCompleted =
     completedSteps.includes(0) && completedSteps.includes(1) && completedSteps.includes(2) && completedSteps.includes(3)
+
+  if (!isClient) return null; // or a loading spinner  
 
   return (
     <>

@@ -105,10 +105,30 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
             });
 
             const completeData = await completeRes.json();
+            const orderId = completeData.order?.id;
 
             if (completeRes.ok && completeData.success && completeData.order) {
               console.log("✅ Order placed:", completeData.order);
 
+              const orderDetailsRes = await fetch(`/api/order?order_id=${orderId}`);
+              const orderDetailsData = await orderDetailsRes.json();
+
+              if (orderDetailsRes.ok) {
+                console.log("✅ Full order details:", orderDetailsData.order);
+                console.log("💳 Payment ID:", orderDetailsData.paymentId)
+              }
+
+              const capturedPayment = await fetch("/api/payment/capture-payment", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  paymentId: orderDetailsData.paymentId,
+                }),
+              })
+              
+              await capturedPayment.json();
               await fetch("/api/cart/remove-cart", { method: "POST" });
 
               setSuppressAutoOpen(true);

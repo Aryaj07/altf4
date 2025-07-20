@@ -19,7 +19,7 @@ import { BillingAddressFormData, ShippingAddressFormData } from "lib/checkout-sc
 interface ShippingStepProps {
   form: UseFormReturnType<ShippingAddressFormData>;
   billingForm: UseFormReturnType<BillingAddressFormData>;
-  onComplete: (values: ShippingAddressFormData) => void;
+  onComplete: (_values: ShippingAddressFormData) => void;
 }
 
 export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProps) {

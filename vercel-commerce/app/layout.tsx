@@ -5,6 +5,7 @@ import './globals.css';
 import { CartProvider } from 'components/cart/cart-context';
 import MantineClientProvider from 'components/providers/mantine-client-provider';
 
+
 const { TWITTER_CREATOR, TWITTER_SITE, SITE_NAME } = process.env;
 const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL
   ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
@@ -36,6 +37,7 @@ const inter = Inter({
   variable: '--font-inter'
 });
 
+// Token provided here ot these props for the root layout
 export default async function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} dark`} suppressHydrationWarning>

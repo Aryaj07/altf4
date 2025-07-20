@@ -8,7 +8,6 @@ export async function POST() {
     name: "auth_token",
     value: "",
     path: "/",
-    httpOnly: true,
     maxAge: 0,
   });
   return response;

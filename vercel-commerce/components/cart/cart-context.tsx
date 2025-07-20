@@ -94,7 +94,7 @@ export function CartProvider({ children }: CartProviderProps) {
         paymentProviderId,
         setPaymentProviderId,
         paymentStepLocked,
-        setPaymentStepLocked,
+        setPaymentStepLocked
       }}
     >
       {children}

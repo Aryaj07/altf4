@@ -2,7 +2,8 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { cookies } from "next/headers"
-import { sdk } from "lib/sdk"
+import { sdk } from "@/lib/sdk/sdk"
+import { sdkServer } from "@/lib/sdk/sdk-server"
 
 // POST: login
 export async function POST(req: NextRequest) {
@@ -27,7 +28,6 @@ export async function POST(req: NextRequest) {
     response.cookies.set({
       name: "auth_token",
       value: token,
-      httpOnly: true,
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
       secure: process.env.NODE_ENV === "production",
@@ -51,7 +51,7 @@ export async function GET() {
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const { customer } = await sdk.store.customer.retrieve(
+    const { customer } = await sdkServer.store.customer.retrieve(
       {},
       { Authorization: `Bearer ${token}` }
     );

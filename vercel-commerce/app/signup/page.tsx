@@ -28,7 +28,7 @@ import {
 } from "@tabler/icons-react"
 import { useState } from "react"
 import Link from "next/link"
-import { sdk } from "lib/sdk"
+import { sdk } from "@/lib/sdk/sdk"
 import { useRouter } from "next/navigation"
 
 export default function SignupPage() {

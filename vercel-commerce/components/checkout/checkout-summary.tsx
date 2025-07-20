@@ -3,16 +3,22 @@
 import { Card, Stack, Group, Text, Badge } from "@mantine/core"
 import { IconMail, IconMapPin, IconTruck, IconGift, IconCreditCard } from "@tabler/icons-react"
 import { useCart } from "components/cart/cart-context"
+import Price from "components/price-new"
+import { useEffect, useState } from "react" 
 
-const paymentProviders: Record<string, string> = {
-  razorpay: "Razorpay",
-  cod: "Cash on Delivery",
-  system_default: "Cash on Delivery", // in case of your old implementation
-}
 
 export function CheckoutSummary() {
   const { cart } = useCart()
+  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+    useEffect(() => {
+    if (!cart) return;
 
+    fetch(`/api/cart/retrieve-shipping_options?cart_id=${cart.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setShippingOptions(data.shipping_options || []);
+      });
+  }, [cart]);
   if (!cart) return null
 
   // ---- Email ----
@@ -35,27 +41,24 @@ export function CheckoutSummary() {
 
   // ---- Delivery ----
   let delivery = null
-  const sm = cart?.shipping_methods?.[0]
+
+  const sm = cart?.shipping_options?.[0];
+
   if (sm) {
     delivery = {
-      selectedOption: sm.shipping_option?.id || sm.id,
-      name: sm.shipping_option?.name || sm.name,
-      price: sm.amount, // assuming your backend returns cents
-    }
-  } else {
-    // try session storage fallback if no method exists yet
-    const storedId = typeof window !== "undefined" ? sessionStorage.getItem("selectedShippingOptionId") : null
-    const storedName = typeof window !== "undefined" ? sessionStorage.getItem("selectedShippingOptionName") : null
-    const storedAmount = typeof window !== "undefined" ? sessionStorage.getItem("selectedShippingOptionAmount") : null
-    if (storedId && storedName && storedAmount) {
-      delivery = {
-        selectedOption: storedId,
-        name: storedName,
-        price: Number.parseFloat(storedAmount),
-      }
-    }
+      selectedOption: sm.shipping_options?.id,
+      name: sm.shipping_option?.name,
+      price: sm.amount,
+    };
+  } else if (shippingOptions.length > 0) {
+    // Use the first available shipping option as a fallback
+    const option = shippingOptions[0];
+    delivery = {
+      selectedOption: option.id,
+      name: option.name,
+      price: option.amount,
+    };
   }
-
   // ---- Promo ----
   const promoCode = cart?.discounts?.find((d: any) => d.code)?.code || null
 
@@ -63,6 +66,15 @@ export function CheckoutSummary() {
   const providerId =
     cart?.payment_collection?.payment_sessions?.[0]?.provider_id ||
     (typeof window !== "undefined" ? sessionStorage.getItem("selectedPaymentProviderId") : null)
+
+  function getProviderDisplayName(providerId?: string) {
+    if (!providerId) return "";
+    const id = providerId.toLowerCase();
+    if (id.includes("razorpay")) return "Razorpay";
+    if (id.includes("system_default") || id.includes("cod")) return "Cash on Delivery";
+    // Add more mappings as needed
+    return providerId;
+  }
 
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -122,24 +134,30 @@ export function CheckoutSummary() {
           </Group>
         )}
         {delivery && (
-          <Group align="flex-start">
-            <IconTruck size={20} color="var(--mantine-color-blue-6)" /> {/* Larger, colored icon */}
-            <div>
-              <Text size="sm" fw={600}>
-                {" "}
-                {/* Bolder title */}
-                Delivery Method
-              </Text>
-              <Text size="sm" c="dimmed">
-                {" "}
-                {/* Dimmed text for details */}
-                {delivery.name}
-              </Text>
-              <Badge size="sm" variant="light" color="green">
-                {" "}
-                {/* Badge for price */}${delivery.price.toFixed(2)}
-              </Badge>
-            </div>
+          <Group justify="space-between" align="center">
+            {/* This group keeps the icon and text together on the left */}
+            <Group>
+              <IconTruck size={20} color="var(--mantine-color-blue-6)" />
+              <div>
+                <Text size="sm" fw={600}>
+                  Delivery Method
+                </Text>
+                <Text size="sm" c="dimmed">
+                  {delivery.name}
+                </Text>
+              </div>
+            </Group>
+
+            {/* The Badge is now a direct child, pushed to the right */}
+            <Badge size="sm" variant="transparent" color="white">
+              <Price
+                amount={delivery.price.toString()}
+                currencyCode={
+                  cart.region?.currency_code?.toUpperCase() || "USD"
+                }
+                showCurrency={false}
+              />
+            </Badge>
           </Group>
         )}
         {promoCode && (
@@ -176,7 +194,7 @@ export function CheckoutSummary() {
               <Text size="sm" c="dimmed">
                 {" "}
                 {/* Dimmed text for details */}
-                {paymentProviders[providerId as keyof typeof paymentProviders] || providerId}
+                {getProviderDisplayName(providerId)}
               </Text>
             </div>
           </Group>
