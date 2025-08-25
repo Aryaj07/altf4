@@ -65,7 +65,6 @@ export function OrderSummary() {
     setApplyingPromo(true);
     
     setPromoError(null);
-
     try {
       const res = await fetch("/api/cart/apply-promo", {
         method: "POST",
@@ -241,7 +240,6 @@ export function OrderSummary() {
                 )}
               </Group>
               <Text size="sm" c="green" component="span">
-                -
                 <Price
                   amount={discountAmount.toString()}
                   currencyCode={

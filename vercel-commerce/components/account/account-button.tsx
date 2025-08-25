@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { UserIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
-import { AccountProvider, } from "./account-context";
+import { AccountProvider, useAccount} from "./account-context";
 
 type AccountButtonProps = {
   token: string;
@@ -23,9 +23,13 @@ export default function AccountButton({
 
 function AccountButtonInner({ className }: { className?: string }) {
   const router = useRouter();
-  
+  const { isSdkReady } = useAccount();
   const handleClick = () => {
-    router.push("/dashboard");
+    if (isSdkReady){
+      router.push("/dashboard");
+      return;
+    };
+    router.push("/login");
   }
 
   return (

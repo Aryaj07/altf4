@@ -13,7 +13,24 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     },
   },
-  plugins: ["medusa-plugin-razorpay-v2"],
+  // plugins: ["medusa-plugin-razorpay-v2",
+  //   {
+  //     resolve: "medusa-plugin-razorpay-v2",
+  //     options: {}
+  //   },
+  //   {
+  //     resolve: '@lambdacurry/medusa-product-reviews',
+  //     options: {
+  //       defaultReviewStatus: 'pending',
+  //     },
+  //   },
+  // ],
+  plugins: ["medusa-plugin-razorpay-v2",
+    {
+      resolve: "medusa-plugin-razorpay-v2",
+      options: {}
+    }
+  ],
   modules: [
     {
       resolve: "@medusajs/medusa/payment",
