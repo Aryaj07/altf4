@@ -57,10 +57,9 @@ export default function OrderHistory() {
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
-  const { token } = useAccount();
+  const { isSdkReady } = useAccount();
   useEffect(() => {
-    console.log("Account token:", token);
-    if (token?.length) {
+    if (isSdkReady) {
       sdk.store.order
         .list({
           fields:
@@ -103,7 +102,7 @@ export default function OrderHistory() {
           console.error("Failed to fetch orders:", err);
         });
     }
-  }, [token]);
+  }, [isSdkReady]);
 
 
 

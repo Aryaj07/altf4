@@ -32,6 +32,7 @@ import { useState, useEffect } from "react";
 import { customZodResolver } from "lib/resolver";
 import { addressSchema, type AddressFormData } from "lib/auth-schema";
 import { sdk } from "@/lib/sdk/sdk";
+import { useAccount } from "@/components/account/account-context";
 
 const addressTypes = [
   { value: "Home", label: "Home", icon: IconHome },
@@ -46,6 +47,7 @@ export default function AddressManagement() {
   const [editingAddress, setEditingAddress] = useState<AddressFormData | null>(null);
   const [addressSubmitting, setAddressSubmitting] = useState(false);
   const [cartId, setCartId] = useState<string | null>(null);
+  const { isSdkReady } = useAccount();
 
     useEffect(() => {
     if (!cartId) return;
@@ -83,6 +85,7 @@ export default function AddressManagement() {
   
   // ... (useEffect hooks for fetching cartId, countries, and addresses)
     useEffect(() => {
+      if (isSdkReady){
       sdk.store.customer.listAddress()
         .then(({ addresses }) => {
           if (addresses) {
@@ -107,7 +110,8 @@ export default function AddressManagement() {
         .catch((err) => {
           console.error("Failed to fetch addresses:", err)
         })
-    }, [])
+      }
+    }, [isSdkReady])
   
 
   const addressForm = useForm<AddressFormData>({
