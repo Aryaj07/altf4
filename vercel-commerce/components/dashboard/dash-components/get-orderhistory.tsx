@@ -1,3 +1,4 @@
+/* eslint-disable no-debugger */
 import {
   Paper,
   Title,
@@ -27,6 +28,7 @@ import {
 import { useState, useEffect } from "react";
 import { sdk } from "@/lib/sdk/sdk";
 import Price from "components/price-new";
+import { useAccount } from "@/components/account/account-context";
 
 type OrderItem = {
   id: string;
@@ -55,48 +57,55 @@ export default function OrderHistory() {
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
-
+  const { token } = useAccount();
   useEffect(() => {
-    sdk.store.order.list()
-      .then(async ({ orders }) => {
-        const detailedOrders = await Promise.all(
-          orders.map(async (orderSummary: any) => {
-            const { order } = await sdk.store.order.retrieve(orderSummary.id);
-            return {
-              id: order.id,
-              display_id: order.display_id,
-              currency: order.currency_code?.toUpperCase() || "USD",
-              date: new Date(order.created_at).toLocaleDateString(),
-              status: order.fulfillment_status || order.status,
-              total: order.total ?? 0,
-              itemtotal: order.item_total,
-              items: order.items?.map((item: any) => ({
+    console.log("Account token:", token);
+    if (token?.length) {
+      sdk.store.order
+        .list({
+          fields:
+            "+id,+display_id,+currency_code,+created_at,+fulfillment_status,+status,+total,+item_total,+subtotal,+shipping_total,+tax_total,+items.id,+items.title,+items.variant_title,+items.quantity,+items.unit_price,+items.thumbnail,+shipping_methods.*,+shipping_methods.name,+shipping_address.address_1,+shipping_address.city,+shipping_address.postal_code",
+        })
+        .then(({ orders }) => {
+
+          const detailedOrders = orders.map((order: any) => ({
+            id: order.id,
+            display_id: order.display_id,
+            currency: order.currency_code?.toUpperCase() || "USD",
+            date: new Date(order.created_at).toLocaleDateString(),
+            status: order.fulfillment_status || order.status,
+            total: order.total ?? 0,
+            itemtotal: order.item_total ?? 0,
+            items:
+              order.items?.map((item: any) => ({
                 id: item.id,
                 name: item.title,
                 variant: item.variant_title || "",
                 quantity: item.quantity ?? 0,
                 price: item.unit_price ?? 0,
-                image: item.thumbnail || "/placeholder.svg?height=60&width=60",
+                image:
+                  item.thumbnail || "/placeholder.svg?height=60&width=60",
               })) ?? [],
-              shipping: {
-                method: order.shipping_methods?.[0]?.name || "N/A",
-                address: order.shipping_address
-                  ? `${order.shipping_address.address_1}, ${order.shipping_address.city}, ${order.shipping_address.postal_code}`
-                  : "N/A",
-                trackingNumber: order.shipping_methods?.[0] || "",
-              },
-              subtotal: order.subtotal ?? 0,
-              shipping_cost: order.shipping_total ?? 0,
-              tax: order.tax_total ?? 0,
-            };
-          })
-        );
-        setOrders(detailedOrders);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch orders:", err);
-      });
-  }, []);
+            shipping: {
+              method: order.shipping_methods?.[0]?.name || "N/A",
+              address: order.shipping_address
+                ? `${order.shipping_address.address_1}, ${order.shipping_address.city}, ${order.shipping_address.postal_code}`
+                : "N/A",
+            },
+            subtotal: order.subtotal ?? 0,
+            shipping_cost: order.shipping_total ?? 0,
+            tax: order.tax_total ?? 0,
+          }));
+          console.log("Detailed orders:", detailedOrders);
+          setOrders(detailedOrders);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch orders:", err);
+        });
+    }
+  }, [token]);
+
+
 
   const toggleOrderExpansion = (orderId: string) => {
     setExpandedOrders((prev) =>

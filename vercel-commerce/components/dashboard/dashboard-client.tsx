@@ -26,7 +26,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { GetServerSideProps } from "next";
 import { AccountProvider } from "components/account/account-context";
-import { sdk } from "@/lib/sdk/sdk";
+// import { sdk } from "@/lib/sdk/sdk";
 
 import ProfileInformation from "components/dashboard/dash-components/get-profileinfo";
 import OrderHistory from "components/dashboard/dash-components/get-orderhistory";
@@ -42,20 +42,47 @@ export  function DashboardClient({ token }: DashboardProps) {
   const router = useRouter();
 
   useEffect(() => {
-    setIsClient(true);
-    sdk.store.customer.retrieve()
-      .then(({ customer }) => {
-        setUser({
-          firstName: customer.first_name,
-          lastName: customer.last_name,
-          email: customer.email,
-          phone: customer.phone,
-        });
-      })
-      .catch((err) => {
+    if (!token) {
+      // no token — don't attempt SDK call (page should redirect or provide token)
+      setIsClient(true);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        // await so errors are caught
+        const res = await fetch("/api/me");
+        if (!mounted) return;
+        if (!res.ok) {
+         console.error("Failed to fetch /api/me:", res.status);
+         setUser(null);
+         return;
+       }
+
+        const data = await res.json();
+        const customer = data?.customer || data;
+        if (customer) {
+          setUser({
+            firstName: customer.first_name || "",
+            lastName: customer.last_name || "",
+            email: customer.email || "",
+            phone: customer.phone || "",
+          });
+        } else {
+          // no customer found — clear user or handle accordingly
+          setUser(null);
+        }
+      } catch (err) {
         console.error("Failed to fetch customer:", err);
-      });
-  }, []);
+        setUser(null);
+      } finally {
+        if (mounted) setIsClient(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
 
   const handleLogout = async () => {
     try {
