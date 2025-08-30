@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Import useEffect
 import { useCart } from "components/cart/cart-context";
+import { useAccount } from "components/account/account-context"; // Import useAccount
+import { sdk } from "@/lib/sdk/sdk"; // Import sdk
 import { TextInput, Button, Stack, Alert, Text } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { EmailFormData } from "lib/checkout-schema";
@@ -14,14 +16,34 @@ interface EmailStepProps {
 
 export function EmailStep({ form, onComplete }: EmailStepProps) {
   const { cart, setCart } = useCart();
+  const { isSdkReady } = useAccount(); // Use the account hook
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPrefilled, setIsPrefilled] = useState(false); // State to prevent overwriting user edits
+
+  // This new useEffect handles pre-filling the email for logged-in users
+  useEffect(() => {
+    // Only run if the user is logged in and we haven't pre-filled the email yet
+    if (isSdkReady && !isPrefilled) {
+      sdk.store.customer
+        .retrieve()
+        .then(({ customer }) => {
+          if (customer?.email) {
+            // Pre-fill the form with the user's email
+            form.setFieldValue("email", customer.email);
+            // Mark as pre-filled to ensure we don't overwrite manual edits
+            setIsPrefilled(true);
+          }
+        })
+        .catch((err) => console.error("Failed to fetch customer for email pre-fill:", err));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSdkReady, isPrefilled]);
 
   const updateCartEmail = async () => {
     if (!cart) return;
-    // Prevent submit if invalid
     if (!form.isValid()) {
       form.validate();
       return;
@@ -46,7 +68,6 @@ export function EmailStep({ form, onComplete }: EmailStepProps) {
       const data = await res.json();
 
       if (res.ok && data?.cart) {
-        // Refresh the cart
         const refreshed = await fetch(`/api/cart`);
         if (refreshed.ok) {
           const latestCart = await refreshed.json();
@@ -54,7 +75,6 @@ export function EmailStep({ form, onComplete }: EmailStepProps) {
         } else {
           setCart(data.cart);
         }
-
         setSuccess(true);
         onComplete();
       } else {
@@ -74,11 +94,7 @@ export function EmailStep({ form, onComplete }: EmailStepProps) {
 
   return (
     <Stack>
-      <Alert
-        icon={<IconInfoCircle size={16} />}
-        color="blue"
-        variant="light"
-      >
+      <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
         We&apos;ll use this email to send you order confirmations and updates.
       </Alert>
 

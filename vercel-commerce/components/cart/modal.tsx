@@ -243,7 +243,7 @@ export default function CartModal({ cart }: { cart: Cart | undefined }) {
                       <p>Total</p>
                       <Price
                         amount={convertToDecimal(
-                          cart?.total ?? 0,
+                          cart?.item_total ?? 0,
                           cart?.region?.currency_code
                         ).toString()}
                         currencyCode={

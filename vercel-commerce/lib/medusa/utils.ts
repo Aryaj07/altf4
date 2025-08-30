@@ -141,17 +141,16 @@ export function reshapeProduct(product: MedusaProduct): Product {
 
   try {
     for (const variant of product.variants || []) {
-      for (const price of variant.prices || []) {
-        if (price.amount > maxAmount) {
-          maxAmount = price.amount;
-          currencyCode = price.currency_code?.toUpperCase() || 'EUR';
-        }
+      const calculated_price = (variant as any)?.calculated_price;
+      if (calculated_price.calculated_amount > maxAmount) {
+        maxAmount = calculated_price.calculated_amount;
+        currencyCode = calculated_price.currency_code?.toUpperCase() || 'EUR';
       }
+      console.log("Calculated Price",calculated_price.calculated_amount);
     }
   } catch (error) {
     console.error('Error calculating max price:', error);
   }
-
   const amount = currencyCode
     ? maxAmount.toString()
     : (maxAmount).toString();
@@ -261,7 +260,7 @@ export const reshapeProductVariant = (
   if (productOptions && productVariant.options) {
     const optionIdMap = mapOptionIds(productOptions);
     selectedOptions = productVariant.options.map((option) => ({
-      name: optionIdMap[option.option_id] ?? '',
+      name: optionIdMap[option.option_id?? ''] ?? '',
       value: option.value
     }));
   }

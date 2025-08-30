@@ -28,7 +28,7 @@ import {
   IconMapPin,
 } from "@tabler/icons-react";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback  } from "react";
 import { customZodResolver } from "lib/resolver";
 import { addressSchema, type AddressFormData } from "lib/auth-schema";
 import { sdk } from "@/lib/sdk/sdk";
@@ -112,26 +112,60 @@ export default function AddressManagement() {
         })
       }
     }, [isSdkReady])
+    
+    // 1. Simplify the fetch logic. We only need to list addresses now.
+    const fetchAddresses = useCallback(async () => {
+      try {
+        const { addresses } = await sdk.store.customer.listAddress();
+        if (addresses) {
+          const mappedAddresses = addresses.map((addr: any) => ({
+            id: addr.id || "",
+            label: addr.metadata?.label || "",
+            firstName: addr.first_name || "",
+            lastName: addr.last_name || "",
+            company: addr.company || "",
+            address: addr.address_1 || "",
+            city: addr.city || "",
+            state: addr.province || "",
+            postalCode: addr.postal_code || "",
+            country: addr.country_code || "",
+            phone: addr.phone || "",
+            // Read the default status directly from the address object.
+            isDefault: !!addr.is_default_shipping,
+          }));
+          setAddresses(mappedAddresses);
+        }
+      } catch (err) {
+        console.error("Failed to fetch address data:", err);
+      }
+    }, []);
+
   
+    // 3. Update the main data fetching useEffect to use the new function.
+    useEffect(() => {
+      if (isSdkReady) {
+        fetchAddresses();
+      }
+    }, [isSdkReady, fetchAddresses]);
 
   const addressForm = useForm<AddressFormData>({
-      validate: customZodResolver(addressSchema),
-      initialValues: {
-        id: "",
-        label: "",
-        firstName: "",
-        lastName: "",
-        company: "",
-        address: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "",
-        phone: "",
-        isDefault: false,
-      },
-      validateInputOnChange: true,
-    })
+    validate: customZodResolver(addressSchema),
+    initialValues: {
+      id: "",
+      label: "",
+      firstName: "",
+      lastName: "",
+      company: "",
+      address: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+      phone: "",
+      isDefault: false,
+    },
+    validateInputOnChange: true,
+  });
 
   const openAddressModal = (address?: any) => {
     if (address) {
@@ -143,135 +177,98 @@ export default function AddressManagement() {
     }
     setAddressModalOpen(true)
   }
+  
+  // 2. This is the new, correct way to set a default address.
+const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
+    try {
+      const updates: Promise<any>[] = [];
+      const currentDefault = addresses.find((addr) => addr.isDefault);
 
-    const handleUpdateAddress = async (addressId: string, values: AddressFormData) => {
-      setAddressSubmitting(true);
-      try {
-        await sdk.store.customer.updateAddress(addressId, {
-          first_name: values.firstName,
-          last_name: values.lastName,
-          company: values.company,
-          address_1: values.address,
-          city: values.city,
-          province: values.state,
-          postal_code: values.postalCode,
-          phone: values.phone,
-          country_code: values.country,
-          metadata: { label: values.label, isDefault: values.isDefault },
-        });
-        // Refresh address list
-        const { addresses } = await sdk.store.customer.listAddress();
-        if (addresses) {
-          setAddresses(addresses.map((addr: any) => ({
-            id: addr.id || '',
-            label: addr.label || '',
-            firstName: addr.first_name || '',
-            lastName: addr.last_name || '',
-            company: addr.company || '',
-            address: addr.address_1 || '',
-            city: addr.city || '',
-            state: addr.province || '',
-            postalCode: addr.postal_code || '',
-            country: addr.country || '',
-            phone: addr.phone || '',
-            isDefault: !!addr.metadata?.isDefault,
-          })));
-        }
-        setAddressModalOpen(false);
-        setEditingAddress(null);
-        addressForm.reset();
-      } catch (error) {
-        console.error("Error updating address:", error);
-      } finally {
-        setAddressSubmitting(false);
+      // Add a check to ensure 'currentDefault.id' exists before using it.
+      if (currentDefault && currentDefault.id && currentDefault.id !== newDefaultAddressId) {
+        // If there's an existing default address, create an update call to unset it.
+        updates.push(
+          sdk.store.customer.updateAddress(currentDefault.id, {
+            is_default_shipping: false,
+          })
+        );
       }
-    };
-  
-    const handleSaveAddress = async (values: AddressFormData) => {
-      setAddressSubmitting(true)
-      try {
-        if (editingAddress && editingAddress.id) {
-          await handleUpdateAddress(editingAddress.id, values);
-          return;
-        } else {
-          // Create new address via Medusa API
-          await sdk.store.customer.createAddress({
-            first_name: values.firstName,
-            last_name: values.lastName,
-            company: values.company,
-            address_1: values.address,
-            city: values.city,
-            province: values.state,
-            postal_code: values.postalCode,
-            phone: values.phone,
-            country_code: values.country,
-            metadata: { label: values.label, isDefault: values.isDefault },
-          });
-          // Refresh address list
-          const { addresses } = await sdk.store.customer.listAddress();
-          if (addresses) {
-            setAddresses(addresses.map((addr: any) => ({
-              id: addr.id || '',
-              label: addr.label || '',
-              firstName: addr.first_name || '',
-              lastName: addr.last_name || '',
-              company: addr.company || '',
-              address: addr.address_1 || '',
-              city: addr.city || '',
-              state: addr.province || '',
-              postalCode: addr.postal_code || '',
-              country: addr.country || '',
-              phone: addr.phone || '',
-              isDefault: !!addr.metadata?.isDefault,
-            })));
-          }
-        }
-        setAddressModalOpen(false)
-        setEditingAddress(null)
-        addressForm.reset()
-      } catch (error) {
-        console.error("Error saving address:", error)
-      } finally {
-        setAddressSubmitting(false)
-      }
+
+      // Create an update call to set the new address as default.
+      updates.push(
+        sdk.store.customer.updateAddress(newDefaultAddressId, {
+          is_default_shipping: true,
+        })
+      );
+
+      // Run both updates concurrently.
+      await Promise.all(updates);
+      await fetchAddresses(); // Re-fetch to update the UI.
+    } catch (error) {
+      console.error("Error setting default address:", error);
     }
-  
-    const handleDeleteAddress = async (addressId: string) => {
-      if (confirm("Are you sure you want to delete this address?")) {
-        try {
-          await sdk.store.customer.deleteAddress(addressId);
-          // Refresh address list after deletion
-          const { addresses } = await sdk.store.customer.listAddress();
-          if (addresses) {
-            setAddresses(addresses.map((addr: any) => ({
-              id: addr.id || '',
-              label: addr.label || '',
-              firstName: addr.first_name || '',
-              lastName: addr.last_name || '',
-              company: addr.company || '',
-              address: addr.address_1 || '',
-              city: addr.city || '',
-              state: addr.province || '',
-              postalCode: addr.postal_code || '',
-              country: addr.country || '',
-              phone: addr.phone || '',
-              isDefault: !!addr.metadata?.isDefault,
-            })));
-          }
-        } catch (error) {
-          console.error("Error deleting address:", error);
+  };
+    
+  // 4. Update handleSaveAddress to correctly set the default ID.
+  const handleSaveAddress = async (values: AddressFormData) => {
+    setAddressSubmitting(true);
+    try {
+      let addressId = editingAddress?.id;
+      // The payload no longer needs the is_default_shipping flag here.
+      // We will handle that with the dedicated function.
+      const addressPayload = {
+        first_name: values.firstName,
+        last_name: values.lastName,
+        company: values.company,
+        address_1: values.address,
+        city: values.city,
+        province: values.state,
+        postal_code: values.postalCode,
+        phone: values.phone,
+        country_code: values.country,
+        metadata: { label: values.label },
+      };
+
+      if (editingAddress && addressId) {
+        await sdk.store.customer.updateAddress(addressId, addressPayload);
+      } else {
+        const { customer } = await sdk.store.customer.createAddress(addressPayload);
+        const newAddress = customer.addresses[customer.addresses.length - 1];
+        if (newAddress) {
+          addressId = newAddress.id;
         }
       }
+
+      // 3. If "Set as default" was checked, call our new function.
+      if (values.isDefault && addressId) {
+        await handleSetDefaultAddress(addressId);
+      } else {
+        // Otherwise, just refresh the address list.
+        await fetchAddresses();
+      }
+
+      setAddressModalOpen(false);
+      addressForm.reset();
+    } catch (error) {
+      console.error("Error saving address:", error);
+    } finally {
+      setAddressSubmitting(false);
     }
+  };
+
   
-    const handleSetDefaultAddress = async (addressId: string) => {
+  const handleDeleteAddress = async (addressId: string) => {
+    if (confirm("Are you sure you want to delete this address?")) {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setAddresses((prev) => prev.map((addr) => ({ ...addr, isDefault: addr.id === addressId })))
+        await sdk.store.customer.deleteAddress(addressId);
+        await fetchAddresses();
       } catch (error) {
-        console.error("Error setting default address:", error)
+        console.error("Error deleting address:", error);
       }
     }
+  };
+  
+
     
     const getAddressIcon = (label: string) => {
       const addressType = addressTypes.find((type) => type.value === label)

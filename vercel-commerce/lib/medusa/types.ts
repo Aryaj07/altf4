@@ -1,3 +1,34 @@
+import type { ProductVariantDTO } from "@medusajs/types"
+
+export type MedusaProductVariant = ProductVariantDTO & {
+  id: string;
+  title?: string;
+  product_id: string;
+  product?: Product;
+  prices?: MoneyAmount[];
+  sku?: string;
+  barcode?: string | null;
+  ean?: string | null;
+  upc?: string | null;
+  variant_rank?: number | null;
+  inventory_quantity: number;
+  allow_backorder: boolean;
+  manage_inventory: boolean;
+  hs_code?: string | null;
+  origin_country?: string | null;
+  mid_code?: string | null;
+  material?: string | null;
+  weight?: number | null;
+  length?: number | null;
+  height?: number | null;
+  width?: number | null;
+  options?: ProductOptionValue[];
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  purchasable?: boolean;
+}
+
 export type MedusaProductCollection = {
   name: any;
   description: string | undefined;
@@ -132,34 +163,6 @@ export type ProductCategory = {
   metadata?: { [key: string]: string } | null;
 };
 
-export type MedusaProductVariant = {
-  id: string;
-  title?: string;
-  product_id: string;
-  product?: Product;
-  prices?: MoneyAmount[];
-  sku?: string;
-  barcode?: string | null;
-  ean?: string | null;
-  upc?: string | null;
-  variant_rank?: number | null;
-  inventory_quantity: number;
-  allow_backorder: boolean;
-  manage_inventory: boolean;
-  hs_code?: string | null;
-  origin_country?: string | null;
-  mid_code?: string | null;
-  material?: string | null;
-  weight?: number | null;
-  length?: number | null;
-  height?: number | null;
-  width?: number | null;
-  options?: ProductOptionValue[];
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  purchasable?: boolean;
-};
 
 export type ProductVariant = MedusaProductVariant & {
   availableForSale: boolean;
@@ -449,7 +452,7 @@ export type CartItem = MedusaLineItem & {
 
 export type RegionInfo = Pick<Region, 'currency_code' | 'tax_code' | 'tax_rate'>;
 export type ProductVariantEntity = ConvertDateToString<Omit<ProductVariant, 'beforeInsert'>>;
-export type ProductVariantInfo = Pick<ProductVariantEntity, 'prices'>;
+export type ProductVariantInfo = Pick<ProductVariantEntity, 'price'>;
 
 type ConvertDateToString<T extends {}> = {
   [P in keyof T]: T[P] extends Date ? Date | string : T[P];

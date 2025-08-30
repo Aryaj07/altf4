@@ -22,14 +22,15 @@
     "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"
   },
   "dependencies": {
-    "@medusajs/admin-sdk": "^2.9.0",
-    "@medusajs/cli": "^2.9.0",
-    "@medusajs/framework": "^2.9.0",
-    "@medusajs/icons": "^2.9.0",
-    "@medusajs/medusa": "^2.9.0",
-    "@medusajs/types": "^2.9.0",
-    "@medusajs/ui": "^4.0.19",
-    "@medusajs/workflows-sdk": "^2.9.0",
+    "@lambdacurry/medusa-product-reviews": "^1.2.1",
+    "@medusajs/admin-sdk": "^2.10.1",
+    "@medusajs/cli": "^2.10.1",
+    "@medusajs/framework": "^2.10.1",
+    "@medusajs/icons": "^2.10.1",
+    "@medusajs/medusa": "^2.10.1",
+    "@medusajs/types": "^2.10.1",
+    "@medusajs/ui": "^4.0.21",
+    "@medusajs/workflows-sdk": "^2.10.1",
     "@mikro-orm/core": "6.4.3",
     "@mikro-orm/knex": "6.4.3",
     "@mikro-orm/migrations": "6.4.3",
@@ -59,5 +60,16 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "resolutions": {
+    "@medusajs/admin-sdk": "^2.10.1",
+    "@medusajs/cli": "^2.10.1",
+    "@medusajs/framework": "^2.10.1",
+    "@medusajs/icons": "^2.10.1",
+    "@medusajs/medusa": "^2.10.1",
+    "@medusajs/types": "^2.10.1",
+    "@medusajs/ui": "^4.0.21",
+    "@medusajs/workflows-sdk": "^2.10.1",
+    "zod": "3.25.76"
   }
 }

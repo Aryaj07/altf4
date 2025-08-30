@@ -3,34 +3,21 @@
 import { useRouter } from "next/navigation";
 import { UserIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
-import { AccountProvider, useAccount} from "./account-context";
+import { useAccount } from "./account-context";
 
-type AccountButtonProps = {
-  token: string;
-};
-
-export default function AccountButton({
-  token,
-  className,
-}: AccountButtonProps & { className?: string }) {
-  // Provider must wrap any component that calls useAccount()
-  return (
-    <AccountProvider token={token}>
-      <AccountButtonInner className={className} />
-    </AccountProvider>
-  );
-}
-
-function AccountButtonInner({ className }: { className?: string }) {
+// The button no longer needs the token prop
+export default function AccountButton({ className }: { className?: string }) {
   const router = useRouter();
+  // The hook now gets the state from a parent provider
   const { isSdkReady } = useAccount();
+
   const handleClick = () => {
-    if (isSdkReady){
+    if (isSdkReady) {
       router.push("/dashboard");
       return;
-    };
+    }
     router.push("/login");
-  }
+  };
 
   return (
     <button

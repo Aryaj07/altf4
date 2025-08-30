@@ -1,9 +1,10 @@
+/* eslint-disable no-undef */
 import { isMedusaError } from 'lib/type-guards';
 
 import { TAGS } from 'lib/constants';
 import { mapOptionIds } from 'lib/utils';
 import { revalidateTag } from 'next/cache';
-import { headers } from 'next/headers';
+import { headers,cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateVariantAmount, computeAmount, convertToDecimal } from './helpers';
 import {
@@ -238,14 +239,15 @@ const reshapeProduct = (product: MedusaProduct): Product => {
 
   let amount = '0';
   let currencyCode = 'USD';
-  if (variant && variant.prices?.[0]?.amount) {
-    currencyCode = variant.prices?.[0]?.currency_code.toUpperCase() ?? 'USD';
-    amount = convertToDecimal(variant.prices[0].amount, currencyCode).toString();
+  const calculated_price = (variant as any)?.calculated_price;
+  if (variant && calculated_price) {
+    currencyCode = calculated_price.currency_code.toUpperCase() ?? 'USD';
+    amount = convertToDecimal(calculated_price.calculated_amount, currencyCode).toString();
   }
   const priceRange = {
     maxVariantPrice: {
       amount,
-      currencyCode: product.variants?.[0]?.prices?.[0]?.currency_code.toUpperCase() ?? ''
+      currencyCode
     }
   };
 
@@ -305,7 +307,7 @@ const reshapeProductVariant = (
   if (productOptions && productVariant.options) {
     const optionIdMap = mapOptionIds(productOptions);
     selectedOptions = productVariant.options.map((option) => ({
-      name: optionIdMap[option.option_id] ?? '',
+      name: optionIdMap[option.option_id ?? ''] ?? '',
       value: option.value
     }));
   }
@@ -450,6 +452,10 @@ export async function getCategoryProducts(
   sortKey?: string
 ): Promise<Product[]> {
   try {
+    // Get cartId from cookies
+    const cookieStore = await cookies();
+    const cartId = cookieStore.get("cartId")?.value;
+
     // First get the category details
     const res = await medusaRequest({
       method: 'GET',
@@ -467,7 +473,7 @@ export async function getCategoryProducts(
     // Then get all products in this category
     const productRes = await medusaRequest({
       method: 'GET',
-      path: `/products?category_id[]=${category.id}&limit=100`,
+      path: `/products?category_id[]=${category.id}&limit=100&cart_id=${cartId}&fields=+*variants.calculated_price`,
       tags: ['products']
     });
 
@@ -555,17 +561,17 @@ export async function getProducts({
   if (query) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?q=${query}&limit=100&fields=+*variants.prices`,
+      path: `/products?q=${query}&limit=100&fields=+*variants.calculated_price`,
       tags: ['products']
     });
   } else if (categoryId) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.prices`,
+      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.calculated_price`,
       tags: ['products']
     });
   } else {
-    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.prices`, tags: ['products'] });
+    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.calculated_price`, tags: ['products'] });
   }
 
   if (!res) {
@@ -622,7 +628,7 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
   // otherwise it will continue to retry the request.
   const collectionWebhooks = ['categories/create', 'categories/delete', 'categories/update'];
   const productWebhooks = ['products/create', 'products/delete', 'products/update'];
-  const topic = headers().get('x-medusa-topic') || 'unknown';
+  const topic = (await headers()).get('x-medusa-topic') || 'unknown';
   const secret = req.nextUrl.searchParams.get('secret');
   const isCollectionUpdate = collectionWebhooks.includes(topic);
   const isProductUpdate = productWebhooks.includes(topic);

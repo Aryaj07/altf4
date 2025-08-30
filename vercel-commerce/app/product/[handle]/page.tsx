@@ -10,6 +10,8 @@ import { HIDDEN_PRODUCT_TAG } from 'lib/constants';
 import { getProduct } from 'lib/medusa';
 import { Image } from 'lib/medusa/types';
 import Link from 'next/link';
+import Reviews from '@/components/review/review';
+import AddReview from '@/components/review/add-review';
 
 export const runtime = 'edge';
 
@@ -104,6 +106,18 @@ export default async function ProductPage({ params }: { params: { handle: string
                   altText: image.altText
                 }))}
               />
+              <hr className="my-6 border-neutral-200 dark:border-neutral-800" />
+              <div className="mt-6 lg:mt-8">
+                <Suspense fallback={<div>Loading reviews...</div>}>
+                  <Reviews productId={product.id!} />
+                </Suspense>
+                <Suspense>
+                  <AddReview
+                    orderId="order"
+                    orderLineItemId="replace-with-order-line-item-id"
+                  />
+                </Suspense>
+              </div>
             </div>
 
             <div className="basis-full lg:basis-2/6">
@@ -125,6 +139,7 @@ export default async function ProductPage({ params }: { params: { handle: string
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function RelatedProducts({ id }: { id: string }) {
   // const relatedProducts = await getProductRecommendations(id);
   const relatedProducts: any[] = [];

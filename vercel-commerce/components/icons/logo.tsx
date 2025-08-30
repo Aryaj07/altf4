@@ -1,16 +1,27 @@
 import clsx from 'clsx';
+import React from 'react';
+import Image from 'next/image';
 
-export default function LogoIcon(props: React.ComponentProps<'svg'>) {
+// Assuming your 512x512 PNG is at this path
+import yourLogo from './android-chrome-512x512.png'; 
+
+export default function LogoIcon(props: React.ComponentProps<'div'>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label={`${process.env.SITE_NAME} logo`}
-      viewBox="0 0 32 28"
+    // The parent div gives the image its displayed size (h-4 w-4)
+    // and `relative` positioning for the `fill` prop.
+    <div
       {...props}
-      className={clsx('h-4 w-4 fill-black dark:fill-white', props.className)}
+      className={clsx(
+        'relative h-4 w-4 rounded-md overflow-hidden', // Added rounded-md and overflow-hidden to match the app icon shape
+        props.className
+      )}
     >
-      <path d="M21.5758 9.75769L16 0L0 28H11.6255L21.5758 9.75769Z" />
-      <path d="M26.2381 17.9167L20.7382 28H32L26.2381 17.9167Z" />
-    </svg>
+      <Image
+        src={yourLogo}
+        alt={`${process.env.SITE_NAME} logo`}
+        fill // Make the image fill its parent container
+        className="object-contain" // Ensures the logo fits without cropping
+      />
+    </div>
   );
 }
