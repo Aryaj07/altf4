@@ -1,27 +1,34 @@
-// ...existing code...
-"use client";
-import React, { useState } from "react";
-import { sdkReview } from "lib/sdk/sdk-review";
+"use client"
+
+import type * as React from "react"
+import { useState } from "react"
+import { Button } from "@/src/components/ui/button"
+import { Input } from "@/src/components/ui/input"
+import { Textarea } from "@/src/components/ui/textarea"
+import { Label } from "@/src/components/ui/label"
+import { sdkReview } from "lib/sdk/sdk-review"
+import { StarRating } from "./star-rating"
 
 export default function AddReview({
   orderId,
   orderLineItemId,
 }: {
-  orderId: string;
-  orderLineItemId: string;
+  orderId: string
+  orderLineItemId: string
 }) {
-  const [rating, setRating] = useState<number>(5);
-  const [content, setContent] = useState<string>("");
-  const [images, setImages] = useState<string>(""); // comma separated URLs
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [rating, setRating] = useState<number>(5)
+  const [content, setContent] = useState<string>("")
+  const [images, setImages] = useState<string>("") // comma separated URLs
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage(null);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setMessage(null)
+    orderId = 'order_01K3PS9YDTQVSXCJKCSYNEJ3JH';
+    orderLineItemId = 'ordli_01K3PS9YDVDZSP59M67PD10N0Q';
 
-    // build payload inline (no exported DTO type in this file)
     const payload = {
       reviews: [
         {
@@ -36,71 +43,73 @@ export default function AddReview({
             .map((url) => ({ url })),
         },
       ],
-    };
+    }
 
     try {
-      // proper API call using the SDK
-      const review = await sdkReview.store.productReviews.upsert(payload);
-      console.log("Upsert response:", review);
-      setMessage("Review submitted successfully.");
-      setContent("");
-      setImages("");
-      setRating(5);
+      await sdkReview.store.productReviews.upsert(payload)
+      setMessage("Review submitted successfully.")
+      setContent("")
+      setImages("")
+      setRating(5)
     } catch (err: any) {
-      console.error("Failed to submit review", err);
-      setMessage(err?.message ?? "Failed to submit review");
+      console.error("Failed to submit review", err)
+      setMessage(err?.message ?? "Failed to submit review")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label>
-          Rating
-          <select
-            value={rating}
-            onChange={(e) => setRating(Number(e.target.value))}
-          >
-            {[5, 4, 3, 2, 1].map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+    <section className="mt-8 rounded-lg border border-neutral-200 bg-dark p-6 md:p-8 dark:border-neutral-800">
+      <h4 className="text-lg font-semibold text-white-900">Write a Review</h4>
+      <form onSubmit={handleSubmit} className="mt-4 space-y-5">
+        <div className="space-y-2">
+          <Label className="text-white-700">Your Rating</Label>
+          <StarRating value={rating} onChange={setRating} aria-label="Select rating" />
+        </div>
 
-      <div>
-        <label>
-          Review
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="review-content" className="text-white-700">
+            Review
+          </Label>
+          <Textarea
+            id="review-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             required
+            placeholder="Share your experience with this product..."
+            className="min-h-28"
           />
-        </label>
-      </div>
+        </div>
 
-      <div>
-        <label>
-          Image URLs (comma separated)
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="review-images" className="text-white-700">
+            Image URLs (comma separated)
+          </Label>
+          <Input
+            id="review-images"
             value={images}
             onChange={(e) => setImages(e.target.value)}
             placeholder="https://... , https://..."
           />
-        </label>
-      </div>
+          <p className="text-xs text-white-500">Optional. Add up to 4 image URLs to show with your review.</p>
+        </div>
 
-      <div>
-        <button type="submit" disabled={loading}>
-          {loading ? "Submitting..." : "Submit Review"}
-        </button>
-      </div>
+        <div>
+          <Button type="submit" disabled={loading} variant={'outline'}>
+            {loading ? "Submitting..." : "Submit Review"}
+          </Button>
+        </div>
 
-      {message && <div>{message}</div>}
-    </form>
-  );
+        {message && (
+          <div
+            role="status"
+            className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700"
+          >
+            {message}
+          </div>
+        )}
+      </form>
+    </section>
+  )
 }

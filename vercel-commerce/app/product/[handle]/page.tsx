@@ -12,6 +12,7 @@ import { Image } from 'lib/medusa/types';
 import Link from 'next/link';
 import Reviews from '@/components/review/review';
 import AddReview from '@/components/review/add-review';
+import SummaryReview from '@/components/review/summary-review';
 
 export const runtime = 'edge';
 
@@ -94,40 +95,86 @@ export default async function ProductPage({ params }: { params: { handle: string
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(productJsonLd)
+            __html: JSON.stringify(productJsonLd),
           }}
         />
         <div className="mx-auto max-w-screen-2xl px-4">
-          <div className="flex flex-col rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black md:p-12 lg:flex-row">
+          <div className="flex flex-col rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black md:p-12 lg:flex-row lg:flex-wrap">
+            
+            {/* Left column: Gallery */}
             <div className="h-full w-full basis-full lg:basis-4/6">
               <Gallery
                 images={product.images!.map((image: Image) => ({
                   src: image.url,
-                  altText: image.altText
+                  altText: image.altText,
                 }))}
               />
-              <hr className="my-6 border-neutral-200 dark:border-neutral-800" />
-              <div className="mt-6 lg:mt-8">
-                <Suspense fallback={<div>Loading reviews...</div>}>
-                  <Reviews productId={product.id!} />
-                </Suspense>
-                <Suspense>
-                  <AddReview
-                    orderId="order"
-                    orderLineItemId="replace-with-order-line-item-id"
-                  />
-                </Suspense>
-              </div>
             </div>
 
+            {/* Right column: Product description */}
             <div className="basis-full lg:basis-2/6">
               <ProductDescriptionWrapper product={product} />
             </div>
-          </div>
-          <Suspense>
-            <RelatedProducts id={product.id!} />
-          </Suspense>
+
+            {/* Full width row: Reviews & other functions */}
+            {/* <div className="basis-full mt-10">
+              <div className="rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black">
+                <h2 className="text-xl font-semibold mb-4">Customer Reviews</h2>
+                <Suspense fallback={<div>Loading reviews...</div>}>
+                  <Reviews productId={product.id!} />
+                </Suspense>
+
+                <div className="mt-6">
+                  <Suspense>
+                    <AddReview
+                      orderId="order"
+                      orderLineItemId="replace-with-order-line-item-id"
+                    />
+                  </Suspense>
+                </div>
+              </div>
+            </div> */}
+            {/* Full width row: Reviews & Summary */}
+<div className="basis-full mt-10">
+  <div className="rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black">
+    <h2 className="text-xl font-semibold mb-6">Customer Reviews</h2>
+
+    <div className="flex flex-col lg:flex-row gap-8">
+      {/* Left side: Review summary */}
+      <div className="lg:w-1/3">
+        <SummaryReview productId={product.id!} />
+      </div>
+
+      {/* Right side: Individual reviews */}
+      <div className="lg:w-2/3 space-y-8">
+        {/* Example review */}
+        <div className="border-b border-gray-200 pb-4">
+           <Reviews productId={product.id!} />
         </div>
+      </div>
+    </div>
+          {/* Review form */}
+          <div className="mt-10">
+            <Suspense>
+              <AddReview
+                orderId="order"
+                orderLineItemId="replace-with-order-line-item-id"
+              />
+            </Suspense>
+          </div>
+        </div>
+      </div>
+          </div>
+
+          {/* Related Products */}
+          <div className="mt-12">
+            <Suspense>
+              <RelatedProducts id={product.id!} />
+            </Suspense>
+          </div>
+        </div>
+
+        {/* Footer */}
         <Suspense>
           <Footer />
         </Suspense>
