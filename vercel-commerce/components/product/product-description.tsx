@@ -18,8 +18,8 @@ export function ProductDescription({
   );
 
   // Use selected variant's price if available, else fallback to product priceRange
-  const price = selectedVariant?.price?.amount || product.priceRange.maxVariantPrice.amount;
-  const currencyCode = selectedVariant?.price?.currencyCode || product.priceRange.maxVariantPrice.currencyCode;
+  const price = (selectedVariant as any)?.calculated_price?.calculated_amount || product.priceRange.maxVariantPrice.amount;
+  const currencyCode = (selectedVariant as any)?.calculated_price?.currencyCode || product.priceRange.maxVariantPrice.currencyCode;
 
   return (
     <>

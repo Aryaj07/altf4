@@ -48,6 +48,7 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function getServerMenu(menu: string): Promise<{ title: string; path: string }[]> {
+  // This part is DYNAMIC - it fetches categories for the header
   if (menu === 'next-js-frontend-header-menu') {
     const res = await serverMedusaRequest({
       method: 'GET',
@@ -65,16 +66,22 @@ export async function getServerMenu(menu: string): Promise<{ title: string; path
     }));
   }
 
+  // This part is STATIC - you manually define the footer links here
   if (menu === 'next-js-frontend-footer-menu') {
+    const siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL || '';
+
     return [
-      { title: 'About Medusa', path: 'https://medusajs.com/' },
-      { title: 'Medusa Docs', path: 'https://docs.medusajs.com/' },
-      { title: 'Medusa Blog', path: 'https://medusajs.com/blog' }
+      { title: 'Privacy Policy', path: `${siteUrl}/privacy` },
+      { title: 'Terms & Conditions', path: `${siteUrl}/terms` },
+      // Example of adding more static links
+      { title: 'Returns', path: `${siteUrl}/returns` },
+      // Add or remove other static links here
+      // { title: 'About Us', path: `${siteUrl}/about` }
     ];
   }
-
   return [];
 }
+
 
 export async function serverMedusaRequest({
   cache = 'force-cache',

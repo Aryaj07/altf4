@@ -144,9 +144,8 @@ export function reshapeProduct(product: MedusaProduct): Product {
       const calculated_price = (variant as any)?.calculated_price;
       if (calculated_price.calculated_amount > maxAmount) {
         maxAmount = calculated_price.calculated_amount;
-        currencyCode = calculated_price.currency_code?.toUpperCase() || 'EUR';
+        currencyCode = calculated_price.currency_code?.toUpperCase();
       }
-      console.log("Calculated Price",calculated_price.calculated_amount);
     }
   } catch (error) {
     console.error('Error calculating max price:', error);

@@ -518,7 +518,7 @@ export async function getProduct(handle: string): Promise<Product | null> {
     
     const res = await medusaRequest({
       method: 'GET',
-      path: `/products?handle=${handle}&limit=1&fields=+*variants.prices`,
+      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price`,
       tags: ['products']
     });
 

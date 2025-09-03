@@ -35,6 +35,7 @@ import AddressManagement from "components/dashboard/dash-components/get-address"
 export function DashboardClient() {
   const [user, setUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // NEW
   const router = useRouter();
   // 3. Get the isSdkReady state from the account context.
   const { isSdkReady } = useAccount();
@@ -44,6 +45,7 @@ export function DashboardClient() {
     // If the SDK isn't ready (e.g., no token), don't fetch data.
     if (!isSdkReady) {
       setIsClient(true); // Still set isClient to true to prevent hydration errors.
+      setIsLoading(false); // NEW
       return;
     }
 
@@ -53,8 +55,14 @@ export function DashboardClient() {
         const res = await fetch("/api/me");
         if (!mounted) return;
         if (!res.ok) {
+          if (res.status === 401) {
+            document.cookie = "auth_token=; Max-Age=0; path=/";
+            router.push("/login");
+            return;
+          }
           console.error("Failed to fetch /api/me:", res.status);
           setUser(null);
+          setIsLoading(false); // NEW
           return;
         }
 
@@ -74,13 +82,16 @@ export function DashboardClient() {
         console.error("Failed to fetch customer:", err);
         setUser(null);
       } finally {
-        if (mounted) setIsClient(true);
+        if (mounted) {
+          setIsClient(true);
+          setIsLoading(false); // NEW
+        }
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [isSdkReady]); // Dependency is now isSdkReady
+  }, [isSdkReady, router]); // Dependency is now isSdkReady
 
   const handleLogout = async () => {
     try {
@@ -96,7 +107,8 @@ export function DashboardClient() {
     setUser(updatedUser);
   };
 
-  if (!isClient) return null; // Prevent hydration mismatch
+  if (!isClient || isLoading) return null; // Prevent hydration mismatch
+  if (!user) return null; // Or render a message indicating no user is logged in
 
   // 5. The AccountProvider wrapper is removed from here. It will be added in the parent page component.
   return (
