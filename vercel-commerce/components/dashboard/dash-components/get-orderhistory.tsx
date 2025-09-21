@@ -130,7 +130,7 @@ export default function OrderHistory() {
                 <Group justify="space-between" align="flex-start">
                 <div>
                     <Group gap="xs" mb="xs">
-                    <Text fw={500}>Order {order.display_id}</Text>
+                    <Text fw={500}>Order Id: {order.id}</Text>
                     <Badge color={getStatusColor(order.status)} size="sm">
                         {order.status}
                     </Badge>
@@ -167,11 +167,12 @@ export default function OrderHistory() {
                         {order.items.map((item: OrderItem) => (
                         <Group key={item.id} gap="sm">
                             <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            width={40}
-                            height={40}
-                            style={{ borderRadius: 4 }}
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.name}
+                              w={48}
+                              h={48}
+                              fit="contain"
+                              radius={4}
                             />
                             <div style={{ flex: 1 }}>
                             <Text size="sm" fw={500}>
@@ -183,7 +184,7 @@ export default function OrderHistory() {
                             </div>
                             <Text fw={500} size="lg" component="span">
                             <Price
-                                amount={order.itemtotal}
+                                amount={(item.price * item.quantity).toString()}
                                 currencyCode={order.currency}
                                 showCurrency={false}
                             />
@@ -277,7 +278,7 @@ export default function OrderHistory() {
     <Modal
     opened={orderModalOpen}
     onClose={() => setOrderModalOpen(false)}
-    title={`Order Details - ${selectedOrder?.display_id}`}
+    title={`Order Details for Order Id: ${selectedOrder?.id}`}
     size="lg"
     centered
     >
@@ -300,9 +301,10 @@ export default function OrderHistory() {
                 <Image
                     src={item.image || "/placeholder.svg"}
                     alt={item.name}
-                    width={60}
-                    height={60}
-                    style={{ borderRadius: 8 }}
+                    w={60}
+                    h={60}
+                    fit="contain"
+                    radius={4}
                 />
                 <div style={{ flex: 1 }}>
                     <Text fw={500}>{item.name}</Text>

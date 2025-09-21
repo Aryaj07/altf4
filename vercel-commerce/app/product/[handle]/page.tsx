@@ -11,7 +11,7 @@ import { getProduct } from 'lib/medusa';
 import { Image } from 'lib/medusa/types';
 import Link from 'next/link';
 import Reviews from '@/components/review/review';
-import AddReview from '@/components/review/add-review';
+// import AddReview from '@/components/review/add-review';
 import SummaryReview from '@/components/review/summary-review';
 
 export const runtime = 'edge';
@@ -153,7 +153,7 @@ export default async function ProductPage({ params }: { params: { handle: string
         </div>
       </div>
     </div>
-          {/* Review form */}
+          {/* Review form
           <div className="mt-10">
             <Suspense>
               <AddReview
@@ -161,7 +161,7 @@ export default async function ProductPage({ params }: { params: { handle: string
                 orderLineItemId="replace-with-order-line-item-id"
               />
             </Suspense>
-          </div>
+          </div> */}
         </div>
       </div>
           </div>

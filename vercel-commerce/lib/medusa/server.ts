@@ -72,7 +72,7 @@ export async function getServerMenu(menu: string): Promise<{ title: string; path
 
     return [
       { title: 'Privacy Policy', path: `${siteUrl}/privacy` },
-      { title: 'Terms & Conditions', path: `${siteUrl}/terms` },
+      { title: 'Terms & Conditions', path: `${siteUrl}/terms-and-condition` },
       // Example of adding more static links
       { title: 'Returns', path: `${siteUrl}/returns` },
       // Add or remove other static links here

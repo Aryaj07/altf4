@@ -1,5 +1,6 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils";
 import { Modules } from "@medusajs/framework/utils"
+import { REVIEW_MODULE } from "./src/modules/auto_mail";
 loadEnv(process.env.NODE_ENV || "development", process.cwd());
 
 module.exports = defineConfig({
@@ -26,6 +27,24 @@ module.exports = defineConfig({
     },
   ],
   modules: [
+    {
+      resolve: "./src/modules/auto_mail",
+    },
+    {
+      resolve: "@medusajs/medusa/notification",
+      dependencies: [REVIEW_MODULE],
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/review_notification",
+            id: "email-provider",
+            options: {
+              channels: ["email"],
+            },
+          },
+        ],
+      },  
+    },
     {
       resolve: "@medusajs/medusa/payment",
       dependencies: [

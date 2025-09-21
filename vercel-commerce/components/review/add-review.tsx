@@ -26,8 +26,14 @@ export default function AddReview({
     e.preventDefault()
     setLoading(true)
     setMessage(null)
-    orderId = 'order_01K3PS9YDTQVSXCJKCSYNEJ3JH';
-    orderLineItemId = 'ordli_01K3PS9YDVDZSP59M67PD10N0Q';
+    // orderId = 'order_01K3PS9YDTQVSXCJKCSYNEJ3JH';
+    // orderLineItemId = 'ordli_01K3PS9YDVDZSP59M67PD10N0Q';
+    const imageUrls = images
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+    const uniqueImageUrls = Array.from(new Set(imageUrls));
 
     const payload = {
       reviews: [
@@ -36,11 +42,7 @@ export default function AddReview({
           order_line_item_id: orderLineItemId,
           rating,
           content,
-          images: images
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
-            .map((url) => ({ url })),
+          images: uniqueImageUrls.map((url) => ({ url })),
         },
       ],
     }
