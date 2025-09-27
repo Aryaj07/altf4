@@ -90,7 +90,7 @@ export default function OrderConfirmationPage() {
             Thank you for your purchase. We are preparing your order.
           </p>
           <Badge className="text-sm font-mono px-4 py-2 bg-neutral-800 text-neutral-200">
-            Order ID: {order.display_id || order.id}
+            Order ID: {order.id}
           </Badge>
         </div>
 
