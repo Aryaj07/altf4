@@ -5,6 +5,7 @@ import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import Handlebars from "handlebars";
 import reviewTemplate from "../modules/review_notification/reviewTemplate";
 import { REVIEW_MODULE } from "../modules/auto_mail";
+import ReviewService from "../modules/auto_mail/service"
 
 const compileReview = Handlebars.compile(reviewTemplate);
 
@@ -12,7 +13,7 @@ export default async function myCustomJob(container: MedusaContainer) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
   const notificationModuleService = container.resolve(Modules.NOTIFICATION);
-  const reviewService = container.resolve(REVIEW_MODULE);
+  const reviewService = container.resolve<ReviewService>(REVIEW_MODULE);
 
   const fromEmail = process.env.MJ_FROM_EMAIL || "arya@altf4gear.com";
   const fromName = process.env.MJ_FROM_NAME || "Altf4gear Team";

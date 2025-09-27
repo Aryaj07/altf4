@@ -8,6 +8,7 @@ import {
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import Handlebars from "handlebars"
 import orderConfirmationTemplate from "../modules/review_notification/orderConfimationTemplate"
+import ReviewService from "../modules/auto_mail/service"
 
 export default async function handleOrderPlaced({ 
   event,
@@ -40,7 +41,7 @@ export default async function handleOrderPlaced({
 
   logger.info(`order-placed: retrieved order ${order.id} for ${order.email}`)
 
-  const reviewService = container.resolve("review")
+  const reviewService = container.resolve<ReviewService>("review");
 
   for (const item of order.items ?? []) {
     // 2. Generate the new review link using the env variable and new format
