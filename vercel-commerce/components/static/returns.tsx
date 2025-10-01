@@ -95,9 +95,6 @@ const ReturnPolicy = () => {
           </div>
           <div data-custom-class="body_text" style={{ lineHeight: 1.1 }}><br /></div>
           <div data-custom-class="body_text" style={{ lineHeight: 1.5 }}>
-            <span>8169433053</span>
-          </div>
-          <div data-custom-class="body_text" style={{ lineHeight: 1.5 }}>
             <span>altf4gear@gmail.com</span>
           </div>
         </div>

@@ -1,10 +1,14 @@
-// middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get('auth_token')?.value;
-  const isProtectedRoute = req.nextUrl.pathname.startsWith('/dashboard');
+  const pathname = req.nextUrl.pathname;
+  
+  const isProtectedRoute = 
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/order-confirmation') ||
+    pathname.startsWith('/checkout');
 
   if (isProtectedRoute && !token) {
     const loginUrl = new URL('/login', req.url);
@@ -15,5 +19,9 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'], // Apply to dashboard and all subroutes
+  matcher: [
+    '/dashboard/:path*',
+    '/order-confirmation/:path*', 
+    '/checkout/:path*'
+  ],
 };

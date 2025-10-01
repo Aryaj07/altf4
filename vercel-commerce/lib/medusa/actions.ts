@@ -11,7 +11,8 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
   // otherwise it will continue to retry the request.
   const collectionWebhooks = ['categories/create', 'categories/delete', 'categories/update'];
   const productWebhooks = ['products/create', 'products/delete', 'products/update'];
-  const topic = headers().get('x-medusa-topic') || 'unknown';
+  const headersList = await headers();
+  const topic = headersList.get('x-medusa-topic') || 'unknown';
   const secret = req.nextUrl.searchParams.get('secret');
   const isCollectionUpdate = collectionWebhooks.includes(topic);
   const isProductUpdate = productWebhooks.includes(topic);
@@ -38,11 +39,13 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function getCartCookie() {
-  return cookies().get('cartId')?.value;
+  const cookieStore = await cookies();
+  return cookieStore.get('cartId')?.value;
 }
 
 export async function setCartCookie(cartId: string) {
-  cookies().set('cartId', cartId, {
+  const cookieStore = await cookies();
+  cookieStore.set('cartId', cartId, {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     httpOnly: true

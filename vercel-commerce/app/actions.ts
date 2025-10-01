@@ -9,7 +9,7 @@ export async function addToCartAction(variantId: string | undefined) {
   }
 
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     let cartId = cookieStore.get('cartId')?.value;
     let cart;
 
@@ -19,6 +19,9 @@ export async function addToCartAction(variantId: string | undefined) {
 
     if (!cartId || !cart) {
       cart = await createCart();
+      if (!cart) {
+        throw new Error('Failed to create cart');
+      }
       cartId = cart.id!;
       cookieStore.set('cartId', cartId);
     }

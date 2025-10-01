@@ -25,7 +25,7 @@ const TermsAndConditions = () => {
         </div>
         <div style={{ textAlign: 'left' }}>
           <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5 }}>
-            We are Altf4 ("<strong>Company</strong>," "<strong>we</strong>," "<strong>us</strong>," "<strong>our</strong>"), a company registered in India at A/19, Shram Saphalya CHS LTD, Haridas Nagar, Shimpoli Road, Borivali (West), Mumbai, Maharashtra 400092.
+            We are Altf4 ("<strong>we</strong>," "<strong>us</strong>," "<strong>our</strong>"), a proprietorship registered in India at A/19, Shram Saphalya CHS LTD, Haridas Nagar, Shimpoli Road, Borivali (West), Mumbai, Maharashtra 400092.
           </div>
         </div>
         <div style={{ lineHeight: 1 }}><br /></div>
@@ -35,7 +35,7 @@ const TermsAndConditions = () => {
           </div>
           <div className="MsoNormal" style={{ lineHeight: 1 }}><br /></div>
           <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5 }}>
-            You can contact us by phone at 8169433053, email at altf4gear@gmail.com, or by mail to A/19, Shram Saphalya CHS LTD, Haridas Nagar, Shimpoli Road, Borivali (West), Mumbai, Maharashtra 400092, India.
+            You can contact us by email at altf4gear@gmail.com, or by mail to A/19, Shram Saphalya CHS LTD, Haridas Nagar, Shimpoli Road, Borivali (West), Mumbai, Maharashtra 400092, India.
           </div>
           <div className="MsoNormal" style={{ lineHeight: 1 }}><br /></div>
           <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5 }}>
@@ -243,6 +243,7 @@ const TermsAndConditions = () => {
                 <div className="MsoNormal" style={{ textAlign: 'left', lineHeight: 1 }}><br /></div>
             </div>
             <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5, marginLeft: '20px' }}>-  Razorpay</div>
+            <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5, marginLeft: '20px' }}>-  Phonepe</div>
             <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5, marginLeft: '20px' }}>-  Mastercard</div>
             <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5, marginLeft: '20px' }}>-  Visa</div>
             <div className="MsoNormal" style={{ lineHeight: 1 }}><br /></div>
@@ -488,7 +489,7 @@ const TermsAndConditions = () => {
                         <strong><h2>20. LIMITATIONS OF LIABILITY</h2></strong>
                     </div>
                     <div className="MsoNormal" style={{ lineHeight: 1.5, textAlign: 'left' }}>
-                        <span data-custom-class="body_text">IN NO EVENT WILL WE OR OUR DIRECTORS, EMPLOYEES, OR AGENTS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, SPECIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFIT, LOST REVENUE, LOSS OF DATA, OR OTHER DAMAGES ARISING FROM YOUR USE OF THE SERVICES, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. NOTWITHSTANDING ANYTHING TO THE CONTRARY CONTAINED HEREIN, OUR LIABILITY TO YOU FOR ANY CAUSE WHATSOEVER AND REGARDLESS OF THE FORM OF THE ACTION, WILL AT ALL TIMES BE LIMITED TO THE AMOUNT PAID, IF ANY, BY YOU TO US. CERTAIN US STATE LAWS AND INTERNATIONAL LAWS DO NOT ALLOW LIMITATIONS ON IMPLIED WARRANTIES OR THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES. IF THESE LAWS APPLY TO YOU, SOME OR ALL OF THE ABOVE DISCLAIMERS OR LIMITATIONS MAY NOT APPLY TO YOU, AND YOU MAY HAVE ADDITIONAL RIGHTS.</span>
+                        <span data-custom-class="body_text">IN NO EVENT WILL WE OR OUR EMPLOYEES, OR AGENTS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, SPECIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFIT, LOST REVENUE, LOSS OF DATA, OR OTHER DAMAGES ARISING FROM YOUR USE OF THE SERVICES, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. NOTWITHSTANDING ANYTHING TO THE CONTRARY CONTAINED HEREIN, OUR LIABILITY TO YOU FOR ANY CAUSE WHATSOEVER AND REGARDLESS OF THE FORM OF THE ACTION, WILL AT ALL TIMES BE LIMITED TO THE AMOUNT PAID, IF ANY, BY YOU TO US. CERTAIN US STATE LAWS AND INTERNATIONAL LAWS DO NOT ALLOW LIMITATIONS ON IMPLIED WARRANTIES OR THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES. IF THESE LAWS APPLY TO YOU, SOME OR ALL OF THE ABOVE DISCLAIMERS OR LIMITATIONS MAY NOT APPLY TO YOU, AND YOU MAY HAVE ADDITIONAL RIGHTS.</span>
                     </div>
                     <div className="MsoNormal" style={{ lineHeight: 1.5, textAlign: 'left' }}><br /></div>
                     <div className="MsoNormal" data-custom-class="heading_1" id="indemnification" style={{ lineHeight: 1.5, textAlign: 'left' }}>
@@ -537,9 +538,6 @@ const TermsAndConditions = () => {
                     </div>
                     <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5, textAlign: 'left' }}>
                         <strong>India</strong>
-                    </div>
-                    <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5, textAlign: 'left' }}>
-                        <strong>Phone: 8169433053</strong>
                     </div>
                     <div className="MsoNormal" data-custom-class="body_text" style={{ lineHeight: 1.5, textAlign: 'left' }}>
                         <strong>altf4gear@gmail.com</strong>

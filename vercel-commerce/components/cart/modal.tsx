@@ -158,7 +158,7 @@ export default function CartModal({ cart }: { cart: Cart | undefined }) {
                                 {item.merchandise.title !==
                                   DEFAULT_OPTION && (
                                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                                    {item.variant_title}
+                                    {(item as any).variant_title}
                                   </p>
                                 )}
                               </div>
@@ -243,7 +243,7 @@ export default function CartModal({ cart }: { cart: Cart | undefined }) {
                       <p>Total</p>
                       <Price
                         amount={convertToDecimal(
-                          cart?.item_total ?? 0,
+                          cart?.total ?? 0,
                           cart?.region?.currency_code
                         ).toString()}
                         currencyCode={

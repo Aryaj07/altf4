@@ -11,11 +11,12 @@ export const revalidate = 43200; // 12 hours
 export async function generateMetadata({
   params
 }: {
-  params: { page: string };
+  params: Promise<{ page: string }>;
 }): Promise<Metadata> {
+  const resolvedParams = await params;
   let page;
 
-  params.page === 'checkout' && (page = CHECKOUT_PAGE_PROPS);
+  resolvedParams.page === 'checkout' && (page = CHECKOUT_PAGE_PROPS);
 
   if (!page) return notFound();
 
@@ -30,10 +31,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function Page({ params }: { params: { page: string } }) {
+export default async function Page({ params }: { params: Promise<{ page: string }> }) {
+  const resolvedParams = await params;
   let page;
 
-  params.page === 'checkout' && (page = CHECKOUT_PAGE_PROPS);
+  resolvedParams.page === 'checkout' && (page = CHECKOUT_PAGE_PROPS);
 
   if (!page) return notFound();
 
