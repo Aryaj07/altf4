@@ -12,6 +12,12 @@ module.exports = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'admin.altf4gear.com',
+        port: '',
+        pathname: '/static/**', // Allows any image in the /static/ path
+      },
+      {
+        protocol: 'https',
         hostname: 'medusa-public-images.s3.eu-west-1.amazonaws.com',
         pathname: '/**',
       },
