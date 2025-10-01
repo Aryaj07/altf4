@@ -6,19 +6,24 @@ import { useCart } from "components/cart/cart-context"
 import Price from "components/price-new"
 import { useEffect, useState } from "react" 
 
-
 export function CheckoutSummary() {
   const { cart } = useCart()
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
-    useEffect(() => {
-    if (!cart) return;
+  
+  useEffect(() => {
+    if (!cart?.id) return;
 
     fetch(`/api/cart/retrieve-shipping_options?cart_id=${cart.id}`)
       .then((res) => res.json())
       .then((data) => {
-        setShippingOptions(data.shipping_options || []);
+        // Fix: Access the nested shipping_options array
+        setShippingOptions(data?.shipping_options || []);
+      })
+      .catch((error) => {
+        console.error('Failed to fetch shipping options:', error);
       });
-  }, [cart]);
+  }, [cart?.id]);
+
   if (!cart) return null
 
   // ---- Email ----
@@ -39,25 +44,41 @@ export function CheckoutSummary() {
       }
     : null
 
-  // ---- Delivery ----
+  // ---- Delivery ---- (Fixed to use correct data structure)
   let delivery = null
 
-  const sm = cart?.shipping_options?.[0];
+  // First, check if cart has shipping methods selected
+  const selectedShippingMethod = cart?.shipping_methods?.[0]
+  
+  if (selectedShippingMethod) {
+    // Try to find the shipping option details from the fetched options
+    const matchingOption = shippingOptions.find(
+      option => option.id === selectedShippingMethod.shipping_option_id
+    );
+    
+    const shippingName = 
+      matchingOption?.name ||
+      selectedShippingMethod.shipping_option?.name ||
+      selectedShippingMethod.name ||
+      'Selected Shipping Method';
 
-  if (sm) {
     delivery = {
-      selectedOption: sm.shipping_options?.id,
-      name: sm.shipping_option?.name,
-      price: sm.amount,
-    };
-  } else if (shippingOptions.length > 0) {
-    // Use the first available shipping option as a fallback
-    const option = shippingOptions[0];
+      selectedOption: selectedShippingMethod.shipping_option_id,
+      name: shippingName,
+      price: selectedShippingMethod.amount || matchingOption?.amount || 0,
+      description: matchingOption?.requirements?.join(', ') || ''
+    }
+  } 
+  // Fallback to first available shipping option
+  else if (shippingOptions.length > 0) {
+    const option = shippingOptions[0]
+    
     delivery = {
       selectedOption: option.id,
-      name: option.name,
-      price: option.amount,
-    };
+      name: option.name || 'Standard Shipping',
+      price: option.amount || 0,
+      description: option.requirements?.join(', ') || ''
+    }
   }
   // ---- Promo ----
   const promoCode = cart?.discounts?.find((d: any) => d.code)?.code || null
@@ -72,48 +93,38 @@ export function CheckoutSummary() {
     const id = providerId.toLowerCase();
     if (id.includes("razorpay")) return "Razorpay";
     if (id.includes("system_default") || id.includes("cod")) return "Cash on Delivery";
-    // Add more mappings as needed
     return providerId;
   }
 
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
       <Stack gap="lg">
-        {" "}
-        {/* Increased gap for better spacing */}
         <Text fw={600} size="lg">
           Order Review
         </Text>
+        
         {email && (
           <Group align="flex-start">
-            <IconMail size={20} color="var(--mantine-color-blue-6)" /> {/* Larger, colored icon */}
+            <IconMail size={20} color="var(--mantine-color-blue-6)" />
             <div>
               <Text size="sm" fw={600}>
-                {" "}
-                {/* Bolder title */}
                 Email Address
               </Text>
               <Text size="sm" c="dimmed">
-                {" "}
-                {/* Dimmed text for details */}
                 {email}
               </Text>
             </div>
           </Group>
         )}
+
         {shipping && (
           <Group align="flex-start">
-            <IconMapPin size={20} color="var(--mantine-color-blue-6)" style={{ marginTop: 2 }} />{" "}
-            {/* Larger, colored icon */}
+            <IconMapPin size={20} color="var(--mantine-color-blue-6)" style={{ marginTop: 2 }} />
             <div>
               <Text size="sm" fw={600}>
-                {" "}
-                {/* Bolder title */}
                 Shipping Address
               </Text>
               <Text size="sm" c="dimmed">
-                {" "}
-                {/* Dimmed text for details */}
                 {shipping.firstName} {shipping.lastName}
                 <br />
                 {shipping.address}
@@ -127,52 +138,56 @@ export function CheckoutSummary() {
                 {shipping.city}, {shipping.postalCode}
                 <br />
                 {shipping.country}
-                <br />
-                Phone: {shipping.phone}
+                {shipping.phone && (
+                  <>
+                    <br />
+                    Phone: {shipping.phone}
+                  </>
+                )}
               </Text>
             </div>
           </Group>
         )}
-        {delivery && (
-          <Group justify="space-between" align="center">
-            {/* This group keeps the icon and text together on the left */}
-            <Group>
-              <IconTruck size={20} color="var(--mantine-color-blue-6)" />
-              <div>
-                <Text size="sm" fw={600}>
-                  Delivery Method
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {delivery.name}
-                </Text>
-              </div>
-            </Group>
 
-            {/* The Badge is now a direct child, pushed to the right */}
-            <Badge size="sm" variant="transparent" color="white">
-              <Price
-                amount={delivery.price.toString()}
-                currencyCode={
-                  cart.region?.currency_code?.toUpperCase() || "USD"
-                }
-                showCurrency={false}
-              />
-            </Badge>
+        {delivery && (
+          <Group align="flex-start">
+            <IconTruck size={20} color="var(--mantine-color-blue-6)" />
+            <div style={{ flex: 1 }}>
+              <Group justify="space-between" align="flex-start">
+                <div>
+                  <Text size="sm" fw={600}>
+                    Delivery Method
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    {delivery.name}
+                  </Text>
+                  {delivery.description && (
+                    <Text size="xs" c="dimmed" mt={2}>
+                      {delivery.description}
+                    </Text>
+                  )}
+                </div>
+                <Badge size="sm" variant="light" color="blue">
+                  <Price
+                    amount={delivery.price.toString()}
+                    currencyCode={cart.region?.currency_code?.toUpperCase() || "USD"}
+                    showCurrency={false}
+                  />
+                </Badge>
+              </Group>
+            </div>
           </Group>
         )}
+
         {promoCode && (
           <Group align="flex-start">
-            <IconGift size={20} color="var(--mantine-color-green-6)" /> {/* Green icon for discount */}
+            <IconGift size={20} color="var(--mantine-color-green-6)" />
             <div>
               <Text size="sm" fw={600}>
-                {" "}
-                {/* Bolder title */}
                 Promo Code Applied
               </Text>
               <Group gap="xs">
                 <Text size="sm" c="dimmed">
-                  {" "}
-                  {/* Dimmed text for details */}
                   {promoCode}
                 </Text>
                 <Badge size="xs" color="green">
@@ -182,18 +197,15 @@ export function CheckoutSummary() {
             </div>
           </Group>
         )}
+
         {providerId && (
           <Group align="flex-start">
-            <IconCreditCard size={20} color="var(--mantine-color-blue-6)" /> {/* Larger, colored icon */}
+            <IconCreditCard size={20} color="var(--mantine-color-blue-6)" />
             <div>
               <Text size="sm" fw={600}>
-                {" "}
-                {/* Bolder title */}
                 Payment Method
               </Text>
               <Text size="sm" c="dimmed">
-                {" "}
-                {/* Dimmed text for details */}
                 {getProviderDisplayName(providerId)}
               </Text>
             </div>

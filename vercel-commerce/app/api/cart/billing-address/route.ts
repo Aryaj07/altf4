@@ -13,14 +13,16 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_API_KEY ?? ''
+        'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY ?? ''
       },
       body: JSON.stringify({ billing_address }),
     });
     let data = null;
     try {
       data = await res.json();
-    } catch (err) {}
+    } catch (err) {
+      console.log('Error parsing JSON response:', err);
+    }
     if (!res.ok || !data?.cart) {
       return NextResponse.json({ error: 'Failed to update billing address' }, { status: 500 });
     }

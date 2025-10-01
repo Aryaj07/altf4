@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-publishable-api-key":
-          process.env.NEXT_PUBLIC_MEDUSA_API_KEY || "",
+          process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
       },
     });
 

@@ -11,10 +11,13 @@ import {
   ProductCategory,
   ProductCollection
 } from './types';
-import { reshapeProduct } from './utils';
-import { reshapeCategory } from './utils';
+import { reshapeProduct, reshapeCategory } from './utils';
 import { isMedusaError } from '../type-guards';
-import { TAGS, ENDPOINT, MEDUSA_API_KEY } from './server-constants';
+import { TAGS } from './server-constants';
+
+// Use environment variables directly
+const MEDUSA_API_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API || 'http://localhost:9000';
+const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '';
 
 export async function revalidate(req: NextRequest): Promise<NextResponse> {
   // We always need to respond with a 200 status code to Medusa,
@@ -47,42 +50,6 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({ status: 200, revalidated: true, now: Date.now() });
 }
 
-export async function getServerMenu(menu: string): Promise<{ title: string; path: string }[]> {
-  // This part is DYNAMIC - it fetches categories for the header
-  if (menu === 'next-js-frontend-header-menu') {
-    const res = await serverMedusaRequest({
-      method: 'GET',
-      path: '/product-categories',
-      tags: ['categories']
-    });
-
-    const categories = res.body.product_categories
-      .map((collection: ProductCategory) => reshapeCategory(collection))
-      .filter((collection: MedusaProductCollection) => !collection.handle.startsWith('hidden'));
-
-    return categories.map((cat: ProductCollection) => ({
-      title: cat.title,
-      path: cat.path
-    }));
-  }
-
-  // This part is STATIC - you manually define the footer links here
-  if (menu === 'next-js-frontend-footer-menu') {
-    const siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL || '';
-
-    return [
-      { title: 'Privacy Policy', path: `${siteUrl}/privacy` },
-      { title: 'Terms & Conditions', path: `${siteUrl}/terms-and-condition` },
-      // Example of adding more static links
-      { title: 'Returns', path: `${siteUrl}/returns` },
-      // Add or remove other static links here
-      // { title: 'About Us', path: `${siteUrl}/about` }
-    ];
-  }
-  return [];
-}
-
-
 export async function serverMedusaRequest({
   cache = 'force-cache',
   method,
@@ -96,6 +63,8 @@ export async function serverMedusaRequest({
   payload?: Record<string, unknown> | undefined;
   tags?: string[];
 }) {
+  const fullUrl = `${MEDUSA_API_URL}/store${path}`;
+  
   const options: RequestInit = {
     method,
     headers: {
@@ -115,7 +84,14 @@ export async function serverMedusaRequest({
   }
 
   try {
-    const result = await fetch(`${ENDPOINT}/store${path}`, options);
+    const result = await fetch(fullUrl, options);
+    
+    if (!result.ok) {
+      const errorText = await result.text();
+      console.error(`API Error: ${result.status} - ${errorText}`);
+      return null;
+    }
+
     const body = await result.json();
 
     if (body.errors) {
@@ -127,6 +103,7 @@ export async function serverMedusaRequest({
       body
     };
   } catch (e: any) {
+    console.error('serverMedusaRequest error:', e);
     if (isMedusaError(e)) {
       throw {
         status: e.status || 500,
@@ -140,33 +117,74 @@ export async function serverMedusaRequest({
   }
 }
 
-export async function getMenu(menu: string): Promise<{ title: string; path: string }[]> {
+export async function getServerMenu(menu: string): Promise<{ title: string; path: string }[]> {
+  // This part is DYNAMIC - it fetches categories for the header
   if (menu === 'next-js-frontend-header-menu') {
+    try {
+      const res = await serverMedusaRequest({
+        method: 'GET',
+        path: '/product-categories',
+        tags: ['categories']
+      });
+
+      if (!res?.body?.product_categories) {
+        console.warn('No product_categories found in response:', res?.body);
+        return [];
+      }
+
+      const categories = res.body.product_categories
+        .map((collection: ProductCategory) => reshapeCategory(collection))
+        .filter((collection: MedusaProductCollection) => !collection.handle.startsWith('hidden'));
+
+      return categories.map((cat: ProductCollection) => ({
+        title: cat.title,
+        path: cat.path
+      }));
+    } catch (error) {
+      console.error('Error fetching categories for menu:', error);
+      return [];
+    }
+  }
+
+  // This part is STATIC - you manually define the footer links here
+  if (menu === 'next-js-frontend-footer-menu') {
+    const siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL || '';
+
+    return [
+      { title: 'Privacy Policy', path: `${siteUrl}/privacy` },
+      { title: 'Terms & Conditions', path: `${siteUrl}/terms-and-condition` },
+      { title: 'Returns', path: `${siteUrl}/returns` },
+    ];
+  }
+  return [];
+}
+
+export async function getServerCategories(): Promise<ProductCollection[]> {
+  try {
     const res = await serverMedusaRequest({
       method: 'GET',
       path: '/product-categories',
       tags: ['categories']
     });
 
-    const categories = res.body.product_categories
+    if (!res?.body?.product_categories) {
+      console.warn('No product_categories found in response:', res?.body);
+      return [];
+    }
+
+    // Reshape categories and hide categories starting with 'hidden'
+    return res.body.product_categories
       .map((collection: ProductCategory) => reshapeCategory(collection))
       .filter((collection: MedusaProductCollection) => !collection.handle.startsWith('hidden'));
-
-    return categories.map((cat: ProductCollection) => ({
-      title: cat.title,
-      path: cat.path
-    }));
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
   }
+}
 
-  if (menu === 'next-js-frontend-footer-menu') {
-    return [
-      { title: 'About Medusa', path: 'https://medusajs.com/' },
-      { title: 'Medusa Docs', path: 'https://docs.medusajs.com/' },
-      { title: 'Medusa Blog', path: 'https://medusajs.com/blog' }
-    ];
-  }
-
-  return [];
+// Remove duplicate getMenu function - use getServerMenu instead
+export async function getMenu(menu: string): Promise<{ title: string; path: string }[]> {
+  return getServerMenu(menu);
 }
 
 export async function getServerCategoryProducts(
@@ -205,67 +223,59 @@ export async function getServerProducts({
   sortKey?: string;
   categoryId?: string;
 }): Promise<Product[]> {
-  // Get region info for proper pricing
-  const regionRes = await serverMedusaRequest({
-    method: 'GET',
-    path: '/regions',
-    tags: ['regions']
-  });
-  
-  const regionId = regionRes?.body?.regions?.[0]?.id;
+  try {
+    // Get region info for proper pricing
+    const regionRes = await serverMedusaRequest({
+      method: 'GET',
+      path: '/regions',
+      tags: ['regions']
+    });
+    
+    const regionId = regionRes?.body?.regions?.[0]?.id;
 
-  // Construct the path with region_id
-  let path = `/products?limit=100&fields=+*variants.prices`;
-  if (regionId) {
-    path += `&region_id=${regionId}`;
-  }
-  if (query) {
-    path += `&q=${query}`;
-  }
-  if (categoryId) {
-    path += `&category_id[]=${categoryId}`;
-  }
+    // Construct the path with region_id
+    let path = `/products?limit=100&fields=+*variants.prices`;
+    if (regionId) {
+      path += `&region_id=${regionId}`;
+    }
+    if (query) {
+      path += `&q=${query}`;
+    }
+    if (categoryId) {
+      path += `&category_id[]=${categoryId}`;
+    }
 
-  const productsRes = await serverMedusaRequest({ 
-    method: 'GET', 
-    path, 
-    tags: ['products'] 
-  });
+    const productsRes = await serverMedusaRequest({ 
+      method: 'GET', 
+      path, 
+      tags: ['products'] 
+    });
 
-  if (!productsRes?.body?.products) {
-    return [];
-  }
+    if (!productsRes?.body?.products) {
+      return [];
+    }
 
-  const products = productsRes.body.products.map((product: MedusaProduct) => 
-    reshapeProduct(product)
-  );
-
-  sortKey === 'PRICE' &&
-    products.sort(
-      (a: Product, b: Product) =>
-        parseFloat(a.priceRange.maxVariantPrice.amount) -
-        parseFloat(b.priceRange.maxVariantPrice.amount)
+    const products = productsRes.body.products.map((product: MedusaProduct) => 
+      reshapeProduct(product)
     );
 
-  sortKey === 'CREATED_AT' &&
-    products.sort((a: Product, b: Product) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    sortKey === 'PRICE' &&
+      products.sort(
+        (a: Product, b: Product) =>
+          parseFloat(a.priceRange.maxVariantPrice.amount) -
+          parseFloat(b.priceRange.maxVariantPrice.amount)
+      );
 
-  reverse && products.reverse();
+    sortKey === 'CREATED_AT' &&
+      products.sort((a: Product, b: Product) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  return products;
-}
+    reverse && products.reverse();
 
-export async function getServerCategories(): Promise<ProductCollection[]> {
-  const res = await serverMedusaRequest({
-    method: 'GET',
-    path: '/product-categories',
-    tags: ['categories']
-  });
-
-  // Reshape categories and hide categories starting with 'hidden'
-  return res.body.product_categories
-    .map((collection: ProductCategory) => reshapeCategory(collection))
-    .filter((collection: MedusaProductCollection) => !collection.handle.startsWith('hidden'));
+    return products;
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
 }
 
 export async function getServerCategory(handle: string): Promise<ProductCollection | undefined> {
@@ -286,7 +296,7 @@ export async function getServerCategory(handle: string): Promise<ProductCollecti
     console.error(`Error fetching category for handle ${handle}:`, error);
     return undefined;
   }
-};
+}
 
 export async function getProduct(handle: string): Promise<Product | undefined> {
   try {
@@ -299,37 +309,24 @@ export async function getProduct(handle: string): Promise<Product | undefined> {
     
     const regionId = regionRes?.body?.regions?.[0]?.id;
     
-    // Construct the URL with region_id
-    const productUrl = new URL(`${ENDPOINT}/store/products`);
-    productUrl.searchParams.append('handle', handle);
+    // Use serverMedusaRequest instead of direct fetch
+    let path = `/products?handle=${handle}`;
     if (regionId) {
-      productUrl.searchParams.append('region_id', regionId);
+      path += `&region_id=${regionId}`;
     }
 
-    const res = await fetch(productUrl.toString(), {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-publishable-api-key': MEDUSA_API_KEY
-      },
-      next: { tags: [TAGS.products] }
+    const res = await serverMedusaRequest({
+      method: 'GET',
+      path,
+      tags: [TAGS.products]
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Failed to fetch product: ${res.status} - ${errorText}`);
-    }
-
-    const data = await res.json();
-    
-    if (!data.products?.length) {
+    if (!res?.body?.products?.length) {
       return undefined;
     }
 
-    const product = data.products[0] as MedusaProduct;
-    //console.log("Product: ", product);
-    const reshape = reshapeProduct(product);
-    //console.log("RESHAPED: " , reshape);
-    return reshape;
+    const product = res.body.products[0] as MedusaProduct;
+    return reshapeProduct(product);
   } catch (error) {
     console.error('Error in getProduct:', error);
     if (isMedusaError(error)) {

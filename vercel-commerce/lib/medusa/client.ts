@@ -10,7 +10,7 @@ import {
 import { reshapeCart, reshapeProduct } from './medusa-utils';
 
 const ENDPOINT = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API ?? 'http://localhost:9000';
-const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_API_KEY ?? '';
+const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY ?? '';
 
 // Client-side cart management
 export function getCartId(): string | undefined {

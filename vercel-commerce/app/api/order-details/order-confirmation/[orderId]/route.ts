@@ -16,7 +16,7 @@ export async function GET(
   const MEDUSA_BACKEND_URL =
     process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
 
-  const API_KEY = process.env.NEXT_PUBLIC_MEDUSA_API_KEY;
+  const API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY;
 
   try {
     const url = `${MEDUSA_BACKEND_URL}/store/orders/${orderId}`;

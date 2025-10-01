@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 export const sdkServer = new Medusa({
   baseUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API!,
   debug: process.env.NODE_ENV === "production",
-  publishableKey: process.env.NEXT_PUBLIC_MEDUSA_API_KEY,
+  publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY,
   auth: {
     type: "jwt",
     jwtTokenStorageMethod: "custom",

@@ -3,22 +3,36 @@ import Link from 'next/link';
 import { GridTileImage } from './grid/tile';
 
 export async function Carousel() {
-  // Get all available categories
-  const categories = await getServerCategories();
-  
-  // Fetch products from all categories
-  const allProductsPromises = categories.map(category => 
-    getServerCategoryProducts(category.handle)
-  );
-  
-  const allProductsArrays = await Promise.all(allProductsPromises);
-  
-  // Flatten the array of arrays and remove any empty arrays
-  const products = allProductsArrays.flat().filter(Boolean);
+  try {
+    // Get all available categories
+    const categories = await getServerCategories();
+    
+    if (!categories || categories.length === 0) {
+      console.warn('No categories available for Carousel');
+      return null;
+    }
+    
+    // Fetch products from all categories
+    const allProductsPromises = categories.map(async (category) => {
+      try {
+        return await getServerCategoryProducts(category.handle);
+      } catch (error) {
+        console.error(`Error fetching products for category ${category.handle}:`, error);
+        return [];
+      }
+    });
+    
+    const allProductsArrays = await Promise.all(allProductsPromises);
+    
+    // Flatten the array of arrays and remove any empty arrays
+    const products = allProductsArrays.flat().filter(Boolean);
 
-  if (!products?.length) return null;
+    if (!products?.length) {
+      console.warn('No products found for Carousel');
+      return null;
+    }
 
-  const carouselProducts = [...products, ...products, ...products];
+    const carouselProducts = [...products, ...products, ...products];
 
   return (
     <div className="w-full overflow-x-auto pb-6 pt-1">
@@ -61,5 +75,8 @@ export async function Carousel() {
         })}
       </ul>
     </div>
-  );
+  );} catch (error) {
+    console.error('Error in Carousel:', error);
+    return null;
+  }
 }
