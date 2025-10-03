@@ -518,7 +518,7 @@ export async function getProduct(handle: string): Promise<Product | null> {
     
     const res = await medusaRequest({
       method: 'GET',
-      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price`,
+      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price,+*variants.inventory_quantity`,
       tags: ['products']
     });
 
@@ -529,7 +529,6 @@ export async function getProduct(handle: string): Promise<Product | null> {
     }
 
     const product = res.body.products[0];
-    
     // Validate the product matches our expected type
     if (!isMedusaProduct(product)) {
       console.error('Invalid product data structure received from Medusa API:', product);

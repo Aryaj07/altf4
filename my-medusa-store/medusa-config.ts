@@ -55,7 +55,7 @@ module.exports = defineConfig({
             resolve: "./src/modules/review_notification",
             id: "email-provider",
             options: {
-              channels: ["email"],
+              channels: ["email", "feed"],
             },
           },
         ],
