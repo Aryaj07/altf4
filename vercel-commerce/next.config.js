@@ -32,6 +32,11 @@ module.exports = {
         port: '9000',
         pathname: '/static/**',
       },
+      {
+        protocol: 'https',
+        hostname: '**',
+        pathname: '/**',
+      }
     ],
   },
 };

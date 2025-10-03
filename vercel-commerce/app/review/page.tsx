@@ -1,6 +1,5 @@
 import { Suspense } from "react"
 import { type Metadata } from "next"
-import { PageHeader } from "src/components/ui/page-header"
 import ReviewClientPage from "./review-client-page"
 
 export const metadata: Metadata = {
@@ -12,14 +11,12 @@ export const metadata: Metadata = {
 // It uses Suspense to handle the client component that reads search params.
 export default function AddReviewPage() {
   return (
-    <div className="container max-w-4xl py-8">
-      <PageHeader
-        title="Write a Review"
-        description="Let us and other customers know what you think about your purchase."
-      />
-      <Suspense fallback={<AddReviewSkeleton />}>
-        <ReviewClientPage />
-      </Suspense>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-4xl">
+        <Suspense fallback={<AddReviewSkeleton />}>
+          <ReviewClientPage />
+        </Suspense>
+      </div>
     </div>
   )
 }
