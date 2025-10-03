@@ -13,8 +13,7 @@ export async function GET(
     );
   }
 
-  const MEDUSA_BACKEND_URL =
-    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
+  const MEDUSA_BACKEND_URL =process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
 
   const API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY;
 

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const medusaBackendUrl =
-      process.env.MEDUSA_BACKEND_URL || "http://localhost:9000";
+      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
 
     const res = await fetch(
       `${medusaBackendUrl}/store/payment-collections/${payment_collection_id}/payment-sessions`,

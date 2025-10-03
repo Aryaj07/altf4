@@ -75,9 +75,9 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
         order_id: razorpayOrder.id,
         amount: razorpayOrder.amount,
         currency: cart.currency_code.toUpperCase() as CurrencyCode,
-        name: process.env.COMPANY_NAME ?? "Your Company Name",
+        name: process.env.COMPANY_NAME || 'Altf4',
         description: `Order #${razorpayOrder.id}`,
-        callback_url: `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/razorpay/hooks`,
+        callback_url: `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API}/razorpay/hooks`,
         image: "https://example.com/your_logo",
         prefill: {
           name: `${cart.billing_address?.first_name ?? ""} ${cart.billing_address?.last_name ?? ""}`,

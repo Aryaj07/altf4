@@ -31,8 +31,6 @@ export default function CodButton({ cart }: { cart: any }) {
         return;
       }
 
-      const createSessionData = await createSessionRes.json();
-      console.log("✅ Payment session created for COD:", createSessionData);
 
       // ✅ STEP 2 → Complete the cart
       const completeRes = await fetch("/api/cart/complete-cart", {
@@ -47,19 +45,12 @@ export default function CodButton({ cart }: { cart: any }) {
 
       const completeData = await completeRes.json();
       const orderId = completeData.order?.id;
-      console.log("✅ Cart completion response:", completeData.order);
 
       if (completeRes.ok && completeData.success && completeData.order) {
-        console.log("✅ COD order placed:", completeData.order);
 
 
         const orderDetailsRes = await fetch(`/api/order?order_id=${orderId}`);
         const orderDetailsData = await orderDetailsRes.json();
-
-        if (orderDetailsRes.ok) {
-          console.log("✅ Full order details:", orderDetailsData.order);
-          console.log("💳 Payment ID:", orderDetailsData.paymentId)
-        }
 
         const capturedPayment = await fetch("/api/payment/capture-payment", {
           method: "POST",

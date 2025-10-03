@@ -8,9 +8,20 @@ export const runtime = 'edge';
 export const revalidate = 43200; // 12 hours
 
 export const metadata = {
-  description: 'High-performance ecommerce store built with Next.js, Vercel, and Medusa.',
+  title: 'Altf4 Gear Store',
+  description: 'Welcome to Altf4 Gear Store',
   openGraph: {
-    type: 'website'
+    type: 'website',
+    title: 'Altf4 Gear Store',
+    description: 'Welcome to Altf4 Gear Store',
+    images: [
+      {
+        url: '/static/logo.svg', // This can be your logo for social sharing
+        width: 800,
+        height: 600,
+        alt: 'Altf4 Gear Store Logo',
+      }
+    ],
   }
 };
 

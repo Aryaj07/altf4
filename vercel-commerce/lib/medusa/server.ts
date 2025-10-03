@@ -16,7 +16,7 @@ import { isMedusaError } from '../type-guards';
 import { TAGS } from './server-constants';
 
 // Use environment variables directly
-const MEDUSA_API_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API || 'http://localhost:9000';
+const MEDUSA_API_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
 const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '';
 
 export async function revalidate(req: NextRequest): Promise<NextResponse> {

@@ -26,7 +26,7 @@ import {
   SelectedOption
 } from './types';
 
-const ENDPOINT = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API ?? 'http://localhost:9000';
+const ENDPOINT = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
 const MEDUSA_PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY;
 
 if (!MEDUSA_PUBLISHABLE_API_KEY) {

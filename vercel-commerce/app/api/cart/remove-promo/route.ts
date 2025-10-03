@@ -20,7 +20,7 @@ export async function DELETE(req: NextRequest) {
     // If promo_codes is missing or empty, fetch the cart and extract all applied promo codes
     if (!Array.isArray(promo_codes) || promo_codes.length === 0) {
       // Fetch the cart to get applied promotions
-      const medusaUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000";
+      const medusaUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
       const cartRes = await fetch(
         `${medusaUrl}/store/carts/${cartId}`,
         {
@@ -48,7 +48,7 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    const medusaUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000";
+    const medusaUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
 
     const res = await fetch(
       `${medusaUrl}/store/carts/${cartId}/promotions`,

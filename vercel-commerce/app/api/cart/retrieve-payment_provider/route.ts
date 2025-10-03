@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const medusaBackendUrl =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API || "http://localhost:9000";
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
 
 // GET /api/cart/retrieve-payment_provider?region_id=...
 export async function GET(req: NextRequest) {

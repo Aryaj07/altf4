@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const medusaUrl =
-      process.env.MEDUSA_BACKEND_URL || 'http://localhost:9000';
+      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;
 
     // Build query string
     const params = new URLSearchParams();
