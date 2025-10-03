@@ -154,6 +154,8 @@ export async function getServerMenu(menu: string): Promise<{ title: string; path
       { title: 'Privacy Policy', path: `${siteUrl}/privacy` },
       { title: 'Terms & Conditions', path: `${siteUrl}/terms-and-condition` },
       { title: 'Returns', path: `${siteUrl}/returns` },
+      { title: 'Shipping', path: `${siteUrl}/shipping-policy`},
+      { title: 'Contact', path: `${siteUrl}/contact`}
     ];
   }
   return [];

@@ -1,17 +1,17 @@
-import ReturnPolicy from '@/components/static/returns';
+import ContactUs from '@/components/static/contact';
 import Head from 'next/head';
 
-const ReturnPage = () => {
+const ContactPage = () => {
   return (
     <div>
       <Head>
         <title>Return Policy - Altf4</title>
       </Head>
       <main style={{ padding: '2rem', margin: '0 auto' }}>
-        <ReturnPolicy />
+        <ContactUs />
       </main>
     </div>
   );
 };
 
-export default ReturnPage;
+export default ContactPage;

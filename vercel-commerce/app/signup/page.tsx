@@ -210,7 +210,7 @@ export default function SignupPage() {
                 label={
                   <Text size="sm">
                     I agree to the{" "}
-                    <Anchor href="/terms" target="_blank">
+                    <Anchor href="/terms-and-condition" target="_blank">
                       Terms of Service
                     </Anchor>{" "}
                     and{" "}
