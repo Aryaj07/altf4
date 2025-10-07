@@ -47,23 +47,40 @@ export async function ThreeItemGrid() {
       return null;
     }
 
-    // Fetch products from all categories
-    const allProductsPromises = categories.map(async (category) => {
-      try {
-        return await getServerCategoryProducts(category.handle);
-      } catch (error) {
-        console.error(`Error fetching products for category ${category.handle}:`, error);
-        return [];
-      }
+    // Sort categories by rank (lowest rank = highest priority)
+    const sortedCategories = categories.sort((a, b) => {
+      const rankA = (a as any).rank ?? 999; // Default to 999 if no rank
+      const rankB = (b as any).rank ?? 999;
+      return rankA - rankB;
     });
 
-    const allProductsArrays = await Promise.all(allProductsPromises);
 
-    // Flatten the array of arrays and remove any empty arrays
-    const allProducts = allProductsArrays.flat().filter(Boolean);
+    // Fetch products from each category in rank order
+    const productsFromRankedCategories: Product[] = [];
+    
+    for (const category of sortedCategories) {
+      try {
+        const categoryProducts = await getServerCategoryProducts(category.handle);
+        if (categoryProducts && categoryProducts.length > 0) {
+          // Take the first product from this ranked category
+          if (categoryProducts[0]) {
+            productsFromRankedCategories.push(categoryProducts[0]);
+          }
+          
+          // Stop when we have 3 products
+          if (productsFromRankedCategories.length === 3) {
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching products for category ${category.handle}:`, error);
+        // Continue to next category if this one fails
+        continue;
+      }
+    }
 
-    // Get the first three products
-    const [firstProduct, secondProduct, thirdProduct] = allProducts;
+    // Get the first three products (now in rank order)
+    const [firstProduct, secondProduct, thirdProduct] = productsFromRankedCategories;
 
     if (!firstProduct || !secondProduct || !thirdProduct) {
       console.warn('Not enough products found for ThreeItemGrid');
