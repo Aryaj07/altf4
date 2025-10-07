@@ -68,18 +68,18 @@ export function ProductDescription({
         </div>
       </div>
       
+      {product.descriptionHtml ? (
+        <Prose
+          className="mb-6 text-sm leading-tight dark:text-white/[75%]"
+          html={product.descriptionHtml}
+        />
+      ) : null}
+      
       <VariantSelector 
         options={product.options} 
         variants={product.variants} 
         onVariantChange={setSelectedVariant}
       />
-
-      {product.descriptionHtml ? (
-        <Prose
-          className="mb-6 text-sm leading-tight dark:text-white/[60%]"
-          html={product.descriptionHtml}
-        />
-      ) : null}
 
       {/* Conditional Add to Cart button */}
       {inStock ? (

@@ -148,7 +148,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
       {/* Right side: Individual reviews */}
       <div className="lg:w-2/3 space-y-8">
         {/* Example review */}
-        <div className="border-b border-gray-200 pb-4">
+        <div className="pb-4">
            <Reviews productId={product.id!} />
         </div>
       </div>
