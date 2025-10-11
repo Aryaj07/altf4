@@ -95,7 +95,6 @@ export default function OrderHistory() {
             shipping_cost: order.shipping_total ?? 0,
             tax: order.tax_total ?? 0,
           }));
-          console.log("Detailed orders:", detailedOrders);
           setOrders(detailedOrders);
         })
         .catch((err) => {

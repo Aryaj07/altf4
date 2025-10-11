@@ -46,85 +46,73 @@ export default function AddressManagement() {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressFormData | null>(null);
   const [addressSubmitting, setAddressSubmitting] = useState(false);
-  const [cartId, setCartId] = useState<string | null>(null);
   const { isSdkReady } = useAccount();
 
-    useEffect(() => {
-    if (!cartId) return;
-    sdk.store.cart.retrieve(cartId)
-      .then(({ cart }) => {
-        if (cart?.region_id) {
-          sdk.store.region.retrieve(cart.region_id)
-            .then(({ region }) => {
-              if (region?.countries) {
-                setCountries(
-                  region.countries.map((c: any) => ({
-                    value: c.iso_2,
-                    label: c.display_name || c.name || c.iso_2.toUpperCase(),
-                  }))
-                );
-              }
-            })
-            .catch((err: any) => {
-              console.error("Failed to fetch region:", err);
-            });
-        }
-      })
-      .catch((err: any) => {
-        console.error("Failed to fetch cart:", err);
-      });
-    }, [cartId]);
-
-    useEffect(() => {
-      if (typeof document !== "undefined") {
-        const match = document.cookie.match(/(?:^|; )cartId=([^;]*)/);
-        if (match && match[1]) setCartId(decodeURIComponent(match[1]));
-      }
-    }, []);
-
-  
-  // ... (useEffect hooks for fetching cartId, countries, and addresses)
-    useEffect(() => {
-      if (isSdkReady){
-      sdk.store.customer.listAddress()
-        .then(({ addresses }) => {
-          if (addresses) {
-            setAddresses(addresses.map((addr: any) => ({
-              id: addr.id || '',
-              label: addr.label || '',
-              firstName: addr.first_name || '',
-              lastName: addr.last_name || '',
-              company: addr.company || '',
-              address: addr.address_1 || '',
-              city: addr.city || '',
-              state: addr.province || '',
-              postalCode: addr.postal_code || '',
-              country: addr.country || '',
-              phone: addr.phone || '',
-              isDefault: !!addr.metadata?.isDefault,
-            })));
-          } else {
-            setAddresses([]);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to fetch addresses:", err)
-        })
-      }
-    }, [isSdkReady])
-    
-    // 1. Simplify the fetch logic. We only need to list addresses now.
-    const fetchAddresses = useCallback(async () => {
+  // Fetch countries independently of cart
+  useEffect(() => {
+    const fetchCountries = async () => {
       try {
-        const { addresses } = await sdk.store.customer.listAddress();
-        if (addresses) {
-          const mappedAddresses = addresses.map((addr: any) => ({
+        // Get all regions and their countries
+        const { regions } = await sdk.store.region.list();
+        
+        if (regions && regions.length > 0) {
+          // Take the first region or find your default region
+          const defaultRegion = regions[0]; // or find by specific criteria
+          
+          if (defaultRegion?.countries) {
+            const countryOptions = defaultRegion.countries.map((c: any) => ({
+              value: c.iso_2,
+              label: c.display_name || c.name || c.iso_2.toUpperCase(),
+            }));
+            setCountries(countryOptions);
+          }
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch countries:", error);
+      }
+    };
+
+    if (isSdkReady) {
+      fetchCountries();
+    }
+  }, [isSdkReady]);
+
+  // Fetch addresses with proper mapping
+  const fetchAddresses = useCallback(async () => {
+    try {
+      
+      const { addresses } = await sdk.store.customer.listAddress();
+      
+      if (addresses) {
+        // Log each raw address before mapping
+        addresses.forEach((addr: any) => {
+          ({
+            id: addr.id,
+            metadata: addr.metadata,
+            first_name: addr.first_name,
+            last_name: addr.last_name,
+            company: addr.company,
+            address_1: addr.address_1,
+            address_2: addr.address_2,
+            city: addr.city,
+            province: addr.province,
+            postal_code: addr.postal_code,
+            country_code: addr.country_code,
+            country: addr.country,
+            phone: addr.phone,
+            is_default_shipping: addr.is_default_shipping,
+          });
+        });
+        
+        const mappedAddresses = addresses.map((addr: any) => {
+          const mapped = {
             id: addr.id || "",
             label: addr.metadata?.label || "",
             firstName: addr.first_name || "",
             lastName: addr.last_name || "",
             company: addr.company || "",
             address: addr.address_1 || "",
+            address_2: addr.address_2 || "",
             city: addr.city || "",
             state: addr.province || "",
             postalCode: addr.postal_code || "",
@@ -132,21 +120,35 @@ export default function AddressManagement() {
             phone: addr.phone || "",
             // Read the default status directly from the address object.
             isDefault: !!addr.is_default_shipping,
-          }));
-          setAddresses(mappedAddresses);
-        }
-      } catch (err) {
-        console.error("Failed to fetch address data:", err);
+          };
+          
+          
+          return mapped;
+        });
+        
+        setAddresses(mappedAddresses);
+      } else {
+        setAddresses([]);
       }
-    }, []);
+    } catch (err) {
+      console.error("❌ Failed to fetch address data:", err);
+      console.error("❌ Error details:", {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace',
+      });
+    }
+  }, []);
 
-  
-    // 3. Update the main data fetching useEffect to use the new function.
-    useEffect(() => {
-      if (isSdkReady) {
-        fetchAddresses();
-      }
-    }, [isSdkReady, fetchAddresses]);
+  // Fetch addresses when SDK is ready
+  useEffect(() => {
+    if (isSdkReady) {
+      fetchAddresses();
+    }
+  }, [isSdkReady, fetchAddresses]);
+
+  // Debug component state
+  useEffect(() => {
+  }, [isSdkReady, countries.length, addresses.length]);
 
   const addressForm = useForm<AddressFormData>({
     validate: customZodResolver(addressSchema),
@@ -157,6 +159,7 @@ export default function AddressManagement() {
       lastName: "",
       company: "",
       address: "",
+      address_2: "",
       city: "",
       state: "",
       postalCode: "",
@@ -178,8 +181,8 @@ export default function AddressManagement() {
     setAddressModalOpen(true)
   }
   
-  // 2. This is the new, correct way to set a default address.
-const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
+  // Set default address with proper API calls
+  const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
     try {
       const updates: Promise<any>[] = [];
       const currentDefault = addresses.find((addr) => addr.isDefault);
@@ -209,7 +212,7 @@ const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
     }
   };
     
-  // 4. Update handleSaveAddress to correctly set the default ID.
+  // Save address (create or update)
   const handleSaveAddress = async (values: AddressFormData) => {
     setAddressSubmitting(true);
     try {
@@ -221,6 +224,7 @@ const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
         last_name: values.lastName,
         company: values.company,
         address_1: values.address,
+        address_2: values.address_2 || "",
         city: values.city,
         province: values.state,
         postal_code: values.postalCode,
@@ -239,7 +243,7 @@ const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
         }
       }
 
-      // 3. If "Set as default" was checked, call our new function.
+      // If "Set as default" was checked, call our new function.
       if (values.isDefault && addressId) {
         await handleSetDefaultAddress(addressId);
       } else {
@@ -256,7 +260,6 @@ const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
     }
   };
 
-  
   const handleDeleteAddress = async (addressId: string) => {
     if (confirm("Are you sure you want to delete this address?")) {
       try {
@@ -267,206 +270,201 @@ const handleSetDefaultAddress = async (newDefaultAddressId: string) => {
       }
     }
   };
-  
 
-    
-    const getAddressIcon = (label: string) => {
-      const addressType = addressTypes.find((type) => type.value === label)
-      return addressType ? addressType.icon : IconMapPin
-    }
-  
+  const getAddressIcon = (label: string) => {
+    const addressType = addressTypes.find((type) => type.value === label)
+    return addressType ? addressType.icon : IconMapPin
+  }
 
   return (
     <>
-
-    <Paper shadow="sm" p="xl" radius="md" withBorder>
+      <Paper shadow="sm" p="xl" radius="md" withBorder>
         <Group justify="space-between" mb="md">
-        <Title order={3}>Manage Addresses</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={() => openAddressModal()}>
+          <Title order={3}>Manage Addresses</Title>
+          <Button leftSection={<IconPlus size={16} />} onClick={() => openAddressModal()}>
             Add New Address
-        </Button>
+          </Button>
         </Group>
         <Stack>
-        {addresses.map((address) => {
+          {addresses.map((address) => {
             const AddressIcon = getAddressIcon(address.label)
             return (
-            <Card key={address.id} padding="md" radius="md" withBorder>
+              <Card key={address.id} padding="md" radius="md" withBorder>
                 <Group justify="space-between" align="flex-start">
-                <Group align="flex-start">
+                  <Group align="flex-start">
                     <AddressIcon size={24} color="var(--mantine-color-blue-6)" />
                     <div style={{ flex: 1 }}>
-                    <Group gap="xs" mb="xs">
+                      <Group gap="xs" mb="xs">
                         <Text fw={500}>{address.label}</Text>
                         {address.isDefault && (
-                        <Badge leftSection={<IconStar size={12} />} color="yellow" size="sm">
+                          <Badge leftSection={<IconStar size={12} />} color="yellow" size="sm">
                             Default
-                        </Badge>
+                          </Badge>
                         )}
-                    </Group>
-                    <Text size="sm" fw={500}>
+                      </Group>
+                      <Text size="sm" fw={500}>
                         {address.firstName} {address.lastName}
-                    </Text>
-                    {address.company && (
+                      </Text>
+                      {address.company && (
                         <Text size="sm" c="dimmed">
-                        {address.company}
+                          {address.company}
                         </Text>
-                    )}
-                    <Text size="sm" c="dimmed">
+                      )}
+                      <Text size="sm" c="dimmed">
                         {address.address}
-                    </Text>
-                    <Text size="sm" c="dimmed">
+                      </Text>
+                      <Text size="sm" c="dimmed">
                         {address.city}, {address.state} {address.postalCode}
-                    </Text>
-                    <Text size="sm" c="dimmed">
+                      </Text>
+                      <Text size="sm" c="dimmed">
                         {address.country}
-                    </Text>
-                    {address.phone && (
+                      </Text>
+                      {address.phone && (
                         <Text size="sm" c="dimmed">
-                        Phone: {address.phone}
+                          Phone: {address.phone}
                         </Text>
-                    )}
+                      )}
                     </div>
-                </Group>
-                <Group gap="xs">
+                  </Group>
+                  <Group gap="xs">
                     {!address.isDefault && address.id && (
-                    <Button variant="subtle" size="xs" onClick={() => handleSetDefaultAddress(address.id!)}>
+                      <Button variant="subtle" size="xs" onClick={() => handleSetDefaultAddress(address.id!)}>
                         Set as Default
-                    </Button>
+                      </Button>
                     )}
                     <ActionIcon variant="outline" size="sm" onClick={() => openAddressModal(address)}>
-                    <IconEdit size={16} />
+                      <IconEdit size={16} />
                     </ActionIcon>
                     {address.id && (
-                    <ActionIcon
+                      <ActionIcon
                         variant="outline"
                         size="sm"
                         color="red"
                         onClick={() => handleDeleteAddress(address.id!)}
                         disabled={address.isDefault}
-                    >
+                      >
                         <IconTrash size={16} />
-                    </ActionIcon>
+                      </ActionIcon>
                     )}
+                  </Group>
                 </Group>
-                </Group>
-            </Card>
+              </Card>
             )
-        })}
-        {addresses.length === 0 && (
+          })}
+          {addresses.length === 0 && (
             <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
-            <Group justify="space-between" align="center">
+              <Group justify="space-between" align="center">
                 <div>
-                <Text fw={500} size="sm">
+                  <Text fw={500} size="sm">
                     No addresses found
-                </Text>
-                <Text size="sm">Add your first address to get started with faster checkout</Text>
+                  </Text>
+                  <Text size="sm">Add your first address to get started with faster checkout</Text>
                 </div>
                 <Button size="sm" onClick={() => openAddressModal()}>
-                Add Address
+                  Add Address
                 </Button>
-            </Group>
+              </Group>
             </Alert>
-        )}
+          )}
         </Stack>
-    </Paper>
+      </Paper>
 
-
-    {/* Address Modal */}
-    <Modal
-    opened={addressModalOpen}
-    onClose={() => setAddressModalOpen(false)}
-    title={editingAddress ? "Edit Address" : "Add New Address"}
-    size="lg"
-    centered
-    >
-    <form onSubmit={addressForm.onSubmit(handleSaveAddress)}>
-        <Stack>
-        <Select
-            label="Address Type"
-            placeholder="Select address type"
-            data={addressTypes.map((type) => ({ value: type.value, label: type.label }))}
-            required
-            {...addressForm.getInputProps("label")}
-        />
-        <Grid>
-            <Grid.Col span={6}>
-            <TextInput
-                label="First Name"
-                placeholder="Enter first name"
-                required
-                {...addressForm.getInputProps("firstName")}
-            />
-            </Grid.Col>
-            <Grid.Col span={6}>
-            <TextInput
-                label="Last Name"
-                placeholder="Enter last name"
-                required
-                {...addressForm.getInputProps("lastName")}
-            />
-            </Grid.Col>
-        </Grid>
-        <TextInput
-            label="Company (Optional)"
-            placeholder="Enter company name"
-            {...addressForm.getInputProps("company")}
-        />
-        <TextInput
-            label="Address Line 1"
-            placeholder="Enter street address"
-            required
-            {...addressForm.getInputProps("address")}
-        />
-        <Grid>
-            <Grid.Col span={6}>
-            <TextInput label="City" placeholder="Enter city" required {...addressForm.getInputProps("city")} />
-            </Grid.Col>
-            <Grid.Col span={6}>
-            <TextInput label="State/Province" placeholder="Enter state" {...addressForm.getInputProps("state")} />
-            </Grid.Col>
-        </Grid>
-        <Grid>
-            <Grid.Col span={6}>
-            <TextInput
-                label="Postal Code"
-                placeholder="Enter postal code"
-                required
-                {...addressForm.getInputProps("postalCode")}
-            />
-            </Grid.Col>
-            <Grid.Col span={6}>
+      {/* Address Modal */}
+      <Modal
+        opened={addressModalOpen}
+        onClose={() => setAddressModalOpen(false)}
+        title={editingAddress ? "Edit Address" : "Add New Address"}
+        size="lg"
+        centered
+      >
+        <form onSubmit={addressForm.onSubmit(handleSaveAddress)}>
+          <Stack>
             <Select
-                label="Country"
-                placeholder="Select country"
-                data={countries}
-                required
-                searchable
-                {...addressForm.getInputProps("country")}
+              label="Address Type"
+              placeholder="Select address type"
+              data={addressTypes.map((type) => ({ value: type.value, label: type.label }))}
+              required
+              {...addressForm.getInputProps("label")}
             />
-            </Grid.Col>
-        </Grid>
-        <TextInput
-            label="Phone Number (Optional)"
-            placeholder="Enter phone number"
-            {...addressForm.getInputProps("phone")}
-        />
-        <Switch
-            label="Set as default address"
-            description="Use this address as your default shipping address"
-            {...addressForm.getInputProps("isDefault", { type: "checkbox" })}
-        />
-        <Group justify="space-between" mt="md">
-            <Button variant="outline" onClick={() => setAddressModalOpen(false)}>
-            Cancel
-            </Button>
-            
-    <Button type="submit" loading={addressSubmitting} disabled={!addressForm.isValid()}>
-            {editingAddress ? "Update Address" : "Add Address"}
-            </Button>
-        </Group>
-        </Stack>
-    </form>
-    </Modal>
+            <Grid>
+              <Grid.Col span={6}>
+                <TextInput
+                  label="First Name"
+                  placeholder="Enter first name"
+                  required
+                  {...addressForm.getInputProps("firstName")}
+                />
+              </Grid.Col>
+              <Grid.Col span={6}>
+                <TextInput
+                  label="Last Name"
+                  placeholder="Enter last name"
+                  required
+                  {...addressForm.getInputProps("lastName")}
+                />
+              </Grid.Col>
+            </Grid>
+            <TextInput
+              label="Company (Optional)"
+              placeholder="Enter company name"
+              {...addressForm.getInputProps("company")}
+            />
+            <TextInput
+              label="Address Line 1"
+              placeholder="Enter street address"
+              required
+              {...addressForm.getInputProps("address")}
+            />
+            <Grid>
+              <Grid.Col span={6}>
+                <TextInput label="City" placeholder="Enter city" required {...addressForm.getInputProps("city")} />
+              </Grid.Col>
+              <Grid.Col span={6}>
+                <TextInput label="State/Province" placeholder="Enter state" {...addressForm.getInputProps("state")} />
+              </Grid.Col>
+            </Grid>
+            <Grid>
+              <Grid.Col span={6}>
+                <TextInput
+                  label="Postal Code"
+                  placeholder="Enter postal code"
+                  required
+                  {...addressForm.getInputProps("postalCode")}
+                />
+              </Grid.Col>
+              <Grid.Col span={6}>
+                <Select
+                  label="Country"
+                  placeholder="Select country"
+                  data={countries}
+                  required
+                  searchable
+                  {...addressForm.getInputProps("country")}
+                />
+              </Grid.Col>
+            </Grid>
+            <TextInput
+              label="Phone Number (Optional)"
+              placeholder="Enter phone number"
+              {...addressForm.getInputProps("phone")}
+            />
+            <Switch
+              label="Set as default address"
+              description="Use this address as your default shipping address"
+              {...addressForm.getInputProps("isDefault", { type: "checkbox" })}
+            />
+            <Group justify="space-between" mt="md">
+              <Button variant="outline" onClick={() => setAddressModalOpen(false)}>
+                Cancel
+              </Button>
+              
+              <Button type="submit" loading={addressSubmitting} disabled={!addressForm.isValid()}>
+                {editingAddress ? "Update Address" : "Add Address"}
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
     </>
   );
 }

@@ -37,6 +37,7 @@ export const addressSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   company: z.string().optional(),
   address: z.string().min(1, "Address is required"),
+  address_2: z.string().optional(),
   city: z.string().min(1, "City is required"),
   state: z.string().optional(),
   postalCode: z.string().min(1, "Postal code is required"),
