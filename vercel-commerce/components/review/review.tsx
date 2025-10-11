@@ -51,9 +51,18 @@ export default async function Reviews({ productId = "default" }: { productId?: s
                 {/* Review Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex flex-col">
-                    <h3 className="font-semibold text-white text-lg">
-                      {r.name ?? r.author ?? r.author_name ?? "Anonymous"}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-white text-lg">
+                        {r.name ?? r.author ?? r.author_name ?? "Anonymous"}
+                      </h3>
+                      {/* Verified Purchase Badge - shown for all approved reviews */}
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900 text-green-200 border border-green-700">
+                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Verified Purchase
+                      </span>
+                    </div>
                     {r.created_at && (
                       <p className="text-gray-400 text-sm mt-1">
                         {new Date(r.created_at).toLocaleDateString(undefined, {
