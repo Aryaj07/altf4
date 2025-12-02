@@ -6,12 +6,10 @@ type Route = {
   lastModified: string;
 };
 
-const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-  : 'http://localhost:3000';
+const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const routesMap = [''].map((route) => ({
+  const routesMap = ['', '/search', '/contact', '/privacy', '/terms-and-condition', '/shipping-policy'].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date().toISOString()
   }));
@@ -19,13 +17,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const collections = await getCategories();
   const collectionsPromise = collections.map((collection) => ({
     url: `${baseUrl}${collection.path}`,
-    lastModified: collection.updatedAt.toString()
+    lastModified: new Date(collection.updatedAt).toISOString()
   }));
 
   const productsPromise = getProducts({}).then((products) =>
     products.map((product) => ({
       url: `${baseUrl}/product/${product.handle}`,
-      lastModified: product.updatedAt.toString()
+      lastModified: new Date(product.updatedAt).toISOString()
     }))
   );
 
