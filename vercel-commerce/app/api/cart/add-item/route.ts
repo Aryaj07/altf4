@@ -27,13 +27,29 @@ export async function POST(req: Request) {
   }
 
   try {
-    await addToCart(cartId, { variantId, quantity: 1 });
+    await addToCart(cartId, { 
+      variantId, 
+      quantity: 1
+    });
     return NextResponse.json({ success: true });
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
+    
+    // Extract meaningful error message from Medusa error
+    let errorMessage = "Error adding item to cart";
+    if (e?.message) {
+      if (e.message.includes("must either contain only preorder variants")) {
+        errorMessage = "Cannot mix preorder and regular items in cart. Please checkout separately.";
+      } else if (e.message.includes("insufficient_inventory")) {
+        errorMessage = "This item is out of stock.";
+      } else {
+        errorMessage = e.message;
+      }
+    }
+    
     return NextResponse.json(
-      { error: "Error adding item to cart" },
-      { status: 500 }
+      { error: errorMessage },
+      { status: 400 }
     );
   }
 }

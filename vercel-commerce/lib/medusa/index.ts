@@ -72,14 +72,20 @@ export default async function medusaRequest({
   }
 
   try {
-    console.log(`Making request to ${ENDPOINT}/store${path}`);
     const result = await fetch(`${ENDPOINT}/store${path}`, options);
 
     if (!result.ok) {
       console.error(`HTTP error! status: ${result.status}`);
       const errorText = await result.text();
       console.error('Error response:', errorText);
-      throw new Error(`HTTP error! status: ${result.status}`);
+      
+      // Try to parse error message from response
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.message || `HTTP error! status: ${result.status}`);
+      } catch (parseError) {
+        throw new Error(errorText || `HTTP error! status: ${result.status}`);
+      }
     }
 
     const body = await result.json();
@@ -387,7 +393,11 @@ export async function updateCart(
 }
 
 export async function getCart(cartId: string): Promise<Cart | null> {
-  const res = await medusaRequest({ method: 'GET', path: `/carts/${cartId}`, tags: ['cart'] });
+  const res = await medusaRequest({ 
+    method: 'GET', 
+    path: `/carts/${cartId}?fields=*items.variant,*items.variant.preorder_variant`, 
+    tags: ['cart'] 
+  });
   const cart = res.body.cart;
 
   if (!cart) {
@@ -518,7 +528,7 @@ export async function getProduct(handle: string): Promise<Product | null> {
     
     const res = await medusaRequest({
       method: 'GET',
-      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price,+*variants.inventory_quantity`,
+      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price,+*variants.inventory_quantity,+*variants.preorder_variant`,
       tags: ['products']
     });
 

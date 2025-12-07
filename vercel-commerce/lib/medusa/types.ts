@@ -1,4 +1,15 @@
 import type { ProductVariantDTO } from "@medusajs/types"
+// import { StorePrice } from "@medusajs/types"
+import { HttpTypes } from "@medusajs/types";
+
+export type PreorderVariant = {
+  id: string;
+  variant_id: string;
+  available_date: string;
+  status: 'enabled' | 'disabled';
+  created_at: string;
+  updated_at: string;
+};
 
 export type MedusaProductVariant = ProductVariantDTO & {
   id: string;
@@ -27,6 +38,7 @@ export type MedusaProductVariant = ProductVariantDTO & {
   updated_at: string;
   deleted_at: string | null;
   purchasable?: boolean;
+  preorder_variant?: PreorderVariant;
 }
 
 export type MedusaProductCollection = {
@@ -457,3 +469,18 @@ export type ProductVariantInfo = Pick<ProductVariantEntity, 'price'>;
 type ConvertDateToString<T extends {}> = {
   [P in keyof T]: T[P] extends Date ? Date | string : T[P];
 };
+
+export type StorePreorderVariant = {
+  id: string
+  variant_id: string
+  available_date: string
+  status: "enabled" | "disabled"
+}
+
+export type StoreProductVariantWithPreorder = HttpTypes.StoreProductVariant & {
+  preorder_variant?: StorePreorderVariant
+}
+
+export type StoreCartLineItemWithPreorder = HttpTypes.StoreCartLineItem & {
+  variant: StoreProductVariantWithPreorder
+}

@@ -91,10 +91,22 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
           },
         },
         handler: async function () {
-          console.log("✅ Payment success!");
-
           try {
-            const completeRes = await fetch("/api/cart/complete-cart", {
+            // Check if cart has preorder items
+            const cartCheckRes = await fetch(`/api/cart?cart_id=${cart.id}`);
+            const cartData = await cartCheckRes.json();
+            
+            const itemsToCheck = cartData.items || [];
+            const hasPreorderItems = itemsToCheck.some((item: any) => 
+              item.variant?.preorder_variant?.status === 'enabled'
+            );
+
+            // Use appropriate endpoint based on cart contents
+            const completeEndpoint = hasPreorderItems 
+              ? "/api/cart/complete-preorder" 
+              : "/api/cart/complete-cart";
+
+            const completeRes = await fetch(completeEndpoint, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -108,15 +120,8 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
             const orderId = completeData.order?.id;
 
             if (completeRes.ok && completeData.success && completeData.order) {
-              console.log("✅ Order placed:", completeData.order);
-
               const orderDetailsRes = await fetch(`/api/order?order_id=${orderId}`);
               const orderDetailsData = await orderDetailsRes.json();
-
-              if (orderDetailsRes.ok) {
-                console.log("✅ Full order details:", orderDetailsData.order);
-                console.log("💳 Payment ID:", orderDetailsData.paymentId)
-              }
 
               const capturedPayment = await fetch("/api/payment/capture-payment", {
                 method: "POST",
@@ -156,7 +161,11 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
               await refreshCart();
               setSuppressAutoOpen(false);
 
-              router.push(`/order-confirmation?orderId=${completeData.order.id}`);
+              // Redirect to appropriate confirmation page
+              const confirmationPage = hasPreorderItems 
+                ? `/preorder-confirmation?orderId=${completeData.order.id}`
+                : `/order-confirmation?orderId=${completeData.order.id}`;
+              router.push(confirmationPage);
             } else {
               console.error("❌ Cart completion failed:", completeData);
               alert("Failed to complete your order.");

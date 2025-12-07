@@ -4,6 +4,13 @@ import Price from 'components/price-new';
 import Prose from 'components/prose';
 import { Product, ProductVariant } from 'lib/medusa/types';
 import { VariantSelector } from './variant-selector';
+import {
+  isVariantPreorder,
+  isProductPreorderAvailable,
+  isVariantInStock,
+  getVariantStockQuantity,
+  hasMultipleOptions
+} from 'lib/preorder-utils';
 
 export function ProductDescription({ 
   product,
@@ -12,41 +19,24 @@ export function ProductDescription({
   product: Product;
   onCartUpdate: () => Promise<void>;
 }) {
-  // Track the selected variant, default to the first if it exists
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(
-    product.variants && product.variants.length > 0 ? product.variants[0] : undefined
-  );
+  // Track the selected variant - auto-select for single variant or no options
+  const shouldAutoSelect = !hasMultipleOptions(product);
+  const initialVariant = shouldAutoSelect && product.variants && product.variants.length > 0 
+    ? product.variants[0] 
+    : undefined;
+  
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(initialVariant);
 
-  // Enhanced stock checking with multiple fallbacks
-  const getStockQuantity = (variant: any): number => {
-    // Path 1: Direct inventory_quantity (most reliable)
-    if (typeof variant?.inventory_quantity === 'number') {
-      return variant.inventory_quantity;
-    }
-    
-    console.log('No stock info found, defaulting to 0');
-    return 0;
-  };
-
-  // Get stock info for all variants
-  const getAllVariantStocks = () => {
-    if (!product.variants || product.variants.length === 0) {
-      return { stocks: [], maxStock: 0, totalStock: 0, hasAnyStock: false };
-    }
-
-    const stocks = product.variants.map(variant => getStockQuantity(variant));
-    const maxStock = Math.max(...stocks);
-    const totalStock = stocks.reduce((sum, stock) => sum + stock, 0);
-    const hasAnyStock = stocks.some(stock => stock > 0);
-
-    return { stocks, maxStock, totalStock, hasAnyStock };
-  };
-
-  const { maxStock, hasAnyStock } = getAllVariantStocks();
-
-  // Determine stock status
-  const selectedStock = selectedVariant ? getStockQuantity(selectedVariant) : maxStock;
-  const inStock = selectedVariant ? selectedStock > 0 : hasAnyStock;
+  // Check if product is available for preorder
+  const productHasPreorder = isProductPreorderAvailable(product);
+  
+  // Check if selected variant is preorder (or initial variant if no selection yet)
+  const variantToCheck = selectedVariant || initialVariant;
+  const isSelectedVariantPreorder = isVariantPreorder(variantToCheck);
+  
+  // Get stock information for selected variant
+  const selectedStock = getVariantStockQuantity(variantToCheck);
+  const inStock = isVariantInStock(variantToCheck);
 
   // Use selected variant's price if available, else fallback to product priceRange
   const price = (selectedVariant as any)?.calculated_price?.calculated_amount || product.priceRange.maxVariantPrice.amount;
@@ -75,31 +65,52 @@ export function ProductDescription({
         />
       ) : null}
       
+      {/* Always show variant selector if product has options */}
       <VariantSelector 
         options={product.options} 
         variants={product.variants} 
         onVariantChange={setSelectedVariant}
       />
 
-      {/* Conditional Add to Cart button */}
-      {inStock ? (
-        <AddToCart 
-          variants={product.variants} 
-          availableForSale={product.availableForSale} 
-          onCartUpdate={onCartUpdate}
-          selectedVariant={selectedVariant}
-        />
-      ) : (
-        <button 
-          disabled 
-          className="flex w-full items-center justify-center rounded-full bg-gray-400 p-4 text-sm font-medium text-gray-600 cursor-not-allowed"
-        >
-          Out of Stock
-        </button>
-      )}
+      {/* Conditional Add to Cart / Pre-order button */}
+      {(() => {
+        // Condition 1: Product has variants and is preorder - disable until variant selected
+        if (productHasPreorder && hasMultipleOptions(product) && !selectedVariant) {
+          return (
+            <button 
+              disabled 
+              className="flex w-full items-center justify-center rounded-full bg-gray-400 p-4 text-sm font-medium text-gray-600 cursor-not-allowed"
+            >
+              Select Options to Pre-Order
+            </button>
+          );
+        }
 
-      {/* Low stock warning - only show when a specific variant is selected */}
-      {selectedVariant && inStock && selectedStock <= 5 && (
+        // Condition 2: Product is out of stock (no variant selected or selected variant out of stock)
+        if (!inStock && !isSelectedVariantPreorder) {
+          return (
+            <button 
+              disabled 
+              className="flex w-full items-center justify-center rounded-full bg-gray-400 p-4 text-sm font-medium text-gray-600 cursor-not-allowed"
+            >
+              Out of Stock
+            </button>
+          );
+        }
+
+        // Condition 3: In stock or preorder available - show Add to Cart button
+        return (
+          <AddToCart 
+            variants={product.variants} 
+            availableForSale={product.availableForSale} 
+            onCartUpdate={onCartUpdate}
+            selectedVariant={selectedVariant}
+          />
+        );
+      })()}
+
+      {/* Low stock warning - only show when a specific variant is selected and in stock */}
+      {selectedVariant && inStock && !isSelectedVariantPreorder && selectedStock <= 5 && (
         <div className="mt-2 flex items-center gap-2 text-sm text-orange-600 dark:text-orange-400">
           <span>⚠️</span>
           <span>Only few left in stock!</span>

@@ -17,6 +17,7 @@ import {
 } from './types';
 import { mapOptionIds } from 'lib/utils';
 import { calculateVariantAmount, computeAmount, convertToDecimal } from './helpers';
+import { StorePreorderVariant } from "./types"
 
 export const isMedusaError = (error: unknown): error is { status: number; message: string } => {
   return typeof error === 'object' && error !== null && 'message' in error;
@@ -293,3 +294,14 @@ export const reshapeCategory = (category: ProductCategory): ProductCollection =>
     updatedAt
   };
 };
+
+
+
+export function isPreorder(
+  preorderVariant: StorePreorderVariant | undefined
+): boolean {
+  return preorderVariant?.status === "enabled" &&
+    (preorderVariant.available_date
+      ? new Date(preorderVariant.available_date) > new Date()
+      : false)
+}

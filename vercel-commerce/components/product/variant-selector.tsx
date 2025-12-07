@@ -2,16 +2,18 @@
 'use client';
 
 import clsx from 'clsx';
-import { ProductOption, ProductVariant } from 'lib/medusa/types';
+import { ProductOption, ProductVariant, StoreProductVariantWithPreorder } from 'lib/medusa/types';
 import { createUrl } from 'lib/utils';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
+import { isPreorder as checkIsPreorder } from 'lib/medusa/utils';
 
 type Combination = {
   id: string;
   availableForSale: boolean;
   inStock: boolean;
+  isPreorder: boolean;
   [key: string]: string | boolean; // ie. { color: 'Red', size: 'Large', ... }
 };
 
@@ -19,6 +21,11 @@ type Combination = {
 const isVariantInStock = (variant: ProductVariant): boolean => {
   const stockQuantity = (variant as any)?.inventory_quantity;
   return typeof stockQuantity === 'number' ? stockQuantity > 0 : true; // Default to true if no inventory data
+};
+
+// Helper function to check if variant is preorder
+const isVariantPreorder = (variant: ProductVariant): boolean => {
+  return checkIsPreorder((variant as StoreProductVariantWithPreorder)?.preorder_variant);
 };
 
 export function VariantSelector({
@@ -56,6 +63,7 @@ export function VariantSelector({
     id: variant.id,
     availableForSale: variant.availableForSale,
     inStock: isVariantInStock(variant),
+    isPreorder: isVariantPreorder(variant),
     // Adds key / value pairs for each variant (ie. "color": "Black" and "size": 'M").
     ...variant.selectedOptions.reduce(
       (accumulator, option) => ({ ...accumulator, [option.name.toLowerCase()]: option.value }),
@@ -91,8 +99,8 @@ export function VariantSelector({
             )
           );
 
-          // Include stock status in availability check
-          const isAvailableForSale = matchingCombination && matchingCombination.inStock;
+          // Include stock status OR preorder status in availability check
+          const isAvailableForSale = matchingCombination && (matchingCombination.inStock || matchingCombination.isPreorder);
 
           // The option is active if it's in the url params.
           const isActive = searchParams.get(optionNameLowerCase) === value;

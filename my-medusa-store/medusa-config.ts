@@ -51,6 +51,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/auto_mail",
     },
     {
+      resolve: "./src/modules/preorder",
+    },
+    {
       resolve: "@medusajs/medusa/notification",
       dependencies: [REVIEW_MODULE],
       options: {

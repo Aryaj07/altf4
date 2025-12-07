@@ -32,8 +32,21 @@ export default function CodButton({ cart }: { cart: any }) {
       }
 
 
-      // ✅ STEP 2 → Complete the cart
-      const completeRes = await fetch("/api/cart/complete-cart", {
+      // ✅ STEP 2 → Check if cart has preorder items
+      const cartCheckRes = await fetch(`/api/cart?cart_id=${cart.id}`);
+      const cartData = await cartCheckRes.json();
+      
+      const itemsToCheck = cartData.items || [];
+      const hasPreorderItems = itemsToCheck.some((item: any) => 
+        item.variant?.preorder_variant?.status === 'enabled'
+      );
+
+      // Use appropriate endpoint based on cart contents
+      const completeEndpoint = hasPreorderItems 
+        ? "/api/cart/complete-preorder" 
+        : "/api/cart/complete-cart";
+
+      const completeRes = await fetch(completeEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -92,9 +105,11 @@ export default function CodButton({ cart }: { cart: any }) {
           setCart(latestCart);
         }
 
-        router.push(
-          `/order-confirmation?orderId=${completeData.order.id}`
-        );
+        // Redirect to appropriate confirmation page
+        const confirmationPage = hasPreorderItems 
+          ? `/preorder-confirmation?orderId=${completeData.order.id}`
+          : `/order-confirmation?orderId=${completeData.order.id}`;
+        router.push(confirmationPage);
       } else {
         console.error("❌ Cart completion failed:", completeData);
         alert("Failed to complete your order.");
