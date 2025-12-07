@@ -18,7 +18,7 @@ export async function GET(
   const API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY;
 
   try {
-    const url = `${MEDUSA_BACKEND_URL}/store/orders/${orderId}`;
+    const url = `${MEDUSA_BACKEND_URL}/store/orders/${orderId}?fields=+items.variant.preorder_variant.*`;
 
     const res = await fetch(url, {
       headers: {

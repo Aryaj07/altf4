@@ -35,7 +35,8 @@ export function isVariantInStock(variant: ProductVariant | undefined): boolean {
   if (!variant) return false;
   
   const stockQuantity = (variant as any)?.inventory_quantity;
-  return typeof stockQuantity === 'number' ? stockQuantity > 0 : false;
+  // Default to true if no inventory data (product doesn't track inventory)
+  return typeof stockQuantity === 'number' ? stockQuantity > 0 : true;
 }
 
 /**
@@ -60,5 +61,44 @@ export function hasVariants(product: Product): boolean {
  */
 export function hasMultipleOptions(product: Product): boolean {
   const options = product.options || [];
-  return options.length > 1 || (options.length === 1 && options[0]?.values.length > 1);
+  if (options.length > 1) return true;
+
+  if (options.length === 1) {
+    const firstOption = options[0];
+    if (!firstOption || !Array.isArray(firstOption.values)) return false;
+    return firstOption.values.length > 1;
+  }
+
+  return false;
+}
+
+/**
+ * Get the estimated arrival date for a preorder variant
+ */
+export function getPreorderETA(variant: ProductVariant | undefined): Date | null {
+  if (!variant) return null;
+  
+  const preorderVariant = (variant as StoreProductVariantWithPreorder)?.preorder_variant;
+  if (!preorderVariant || !checkIsPreorder(preorderVariant)) return null;
+  
+  // Get the available_date from preorder_variant
+  const availableDate = (preorderVariant as any).available_date;
+  if (!availableDate) return null;
+  
+  return new Date(availableDate);
+}
+
+/**
+ * Format the ETA date for display
+ */
+export function formatPreorderETA(date: Date | null): string {
+  if (!date) return '';
+  
+  const options: Intl.DateTimeFormatOptions = { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  
+  return date.toLocaleDateString('en-US', options);
 }

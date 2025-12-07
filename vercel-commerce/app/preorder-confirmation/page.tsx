@@ -85,7 +85,7 @@ export default function PreorderConfirmationPage() {
 
   // Get earliest preorder availability date from items
   const preorderDates = items
-    .map((item: any) => item.variant?.preorder_variant?.available_at)
+    .map((item: any) => item.variant?.preorder_variant?.available_date)
     .filter(Boolean);
   const earliestPreorderDate = preorderDates.length > 0 
     ? preorderDates.sort()[0] 
@@ -103,7 +103,7 @@ export default function PreorderConfirmationPage() {
             Pre-Order Confirmed!
           </h1>
           <p className="text-lg text-neutral-300 mb-4">
-            Thank you for your pre-order. We'll notify you when it's ready to ship.
+            Thank you for your pre-order. We&apos;ll notify you when it&apos;s ready to ship.
           </p>
           <Badge className="text-sm font-mono px-4 py-2 bg-neutral-800 text-neutral-200">
             Order ID: {order.id}
@@ -189,7 +189,7 @@ export default function PreorderConfirmationPage() {
                   <TableBody>
                     {items.map((item: any) => {
                       const preorderData = item.variant?.preorder_variant;
-                      const availableDate = preorderData?.available_at;
+                      const availableDate = preorderData?.available_date;
                       
                       return (
                         <TableRow
@@ -293,7 +293,7 @@ export default function PreorderConfirmationPage() {
                     What happens next?
                   </h3>
                   <p className="text-sm text-purple-200">
-                    You'll receive an email confirmation shortly. We'll notify you when your pre-order is ready to ship.
+                    You&apos;ll receive an email confirmation shortly. We&apos;ll notify you when your pre-order is ready to ship.
                   </p>
                 </div>
                 <Separator className="bg-purple-800" />

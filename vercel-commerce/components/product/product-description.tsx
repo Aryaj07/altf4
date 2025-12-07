@@ -9,7 +9,9 @@ import {
   isProductPreorderAvailable,
   isVariantInStock,
   getVariantStockQuantity,
-  hasMultipleOptions
+  hasMultipleOptions,
+  getPreorderETA,
+  formatPreorderETA
 } from 'lib/preorder-utils';
 
 export function ProductDescription({ 
@@ -37,6 +39,10 @@ export function ProductDescription({
   // Get stock information for selected variant
   const selectedStock = getVariantStockQuantity(variantToCheck);
   const inStock = isVariantInStock(variantToCheck);
+  
+  // Get preorder ETA if variant is preorder
+  const preorderETA = isSelectedVariantPreorder ? getPreorderETA(variantToCheck) : null;
+  const formattedETA = formatPreorderETA(preorderETA);
 
   // Use selected variant's price if available, else fallback to product priceRange
   const price = (selectedVariant as any)?.calculated_price?.calculated_amount || product.priceRange.maxVariantPrice.amount;
@@ -74,19 +80,19 @@ export function ProductDescription({
 
       {/* Conditional Add to Cart / Pre-order button */}
       {(() => {
-        // Condition 1: Product has variants and is preorder - disable until variant selected
-        if (productHasPreorder && hasMultipleOptions(product) && !selectedVariant) {
+        // Condition 1: Product has multiple options but no variant selected - show select options
+        if (hasMultipleOptions(product) && !selectedVariant) {
           return (
             <button 
               disabled 
               className="flex w-full items-center justify-center rounded-full bg-gray-400 p-4 text-sm font-medium text-gray-600 cursor-not-allowed"
             >
-              Select Options to Pre-Order
+              {productHasPreorder ? 'Select Options to Pre-Order' : 'Please Select Options'}
             </button>
           );
         }
 
-        // Condition 2: Product is out of stock (no variant selected or selected variant out of stock)
+        // Condition 2: Product is out of stock (selected variant out of stock and not preorder)
         if (!inStock && !isSelectedVariantPreorder) {
           return (
             <button 
@@ -108,6 +114,25 @@ export function ProductDescription({
           />
         );
       })()}
+
+      {/* Preorder ETA badge - show when variant is preorder and has ETA */}
+      {isSelectedVariantPreorder && formattedETA && (
+        <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-4 dark:bg-blue-900/20 dark:border-blue-800">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">Pre-Order Item</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Estimated Shipping: <span className="font-medium">{formattedETA}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Low stock warning - only show when a specific variant is selected and in stock */}
       {selectedVariant && inStock && !isSelectedVariantPreorder && selectedStock <= 5 && (
