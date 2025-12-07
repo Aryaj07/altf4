@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import Image from 'next/image';
 import Label from '../label';
+import React from 'react';
 
 export function GridTileImage({
   isInteractive = true,
@@ -15,6 +16,7 @@ export function GridTileImage({
     amount: string;
     currencyCode: string;
     position?: 'bottom' | 'center';
+    isPreorder?: boolean;
   };
 } & React.ComponentProps<typeof Image>) {
   return (
@@ -37,6 +39,13 @@ export function GridTileImage({
           {...props}
         />
       ) : null}
+      {label?.isPreorder && (
+        <div className="absolute top-4 left-4">
+          <span className="rounded-full bg-purple-600 px-3 py-1.5 text-xs text-white shadow-lg" style={{ fontFamily: 'Inter-Bold, Inter, sans-serif', fontWeight: 600 }}>
+            Pre-Order
+          </span>
+        </div>
+      )}
       {label ? (
         <Label
           title={label.title}

@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 
 const messages = [
+  { text: 'Pre-order MAD 68 PRO & save ₹333 (auto applied on checkout)! 🚀', link: null },
+  { text: 'Pre-order MAD 68 HE & save ₹200 (auto applied on checkout)! 🚀', link: null },
   { text: 'Free shipping on orders over ₹999! 🎉', link: null },
   { text: 'Free skates (random) on all keyboard and mouse orders! 🎉', link: null },
-//   { text: 'Join our Discord community! 💬', link: 'https://discord.gg/your-invite-code' }
 ];
 
 export default function Banner() {
@@ -20,7 +21,7 @@ export default function Banner() {
   }, []);
 
   return (
-    <div className="bg-black text-white text-center py-2 px-4 text-sm overflow-hidden relative h-8">
+    <div className="bg-black text-white text-center py-3 px-4 text-base overflow-hidden relative h-10">
       {messages.map((message, index) => (
         <div
           key={index}

@@ -2,6 +2,7 @@ import { GridTileImage } from 'components/grid/tile';
 import { getServerCategories, getServerCategoryProducts } from 'lib/medusa/server';
 import type { Product } from 'lib/medusa/types';
 import Link from 'next/link';
+import { hasAnyPreorderVariant } from 'lib/preorder-utils';
 
 function ThreeItemGridItem({
   item,
@@ -29,7 +30,8 @@ function ThreeItemGridItem({
             position: size === 'full' ? 'bottom' : 'bottom',
             title: item.title as string,
             amount: item.priceRange.maxVariantPrice.amount,
-            currencyCode: item.priceRange.maxVariantPrice.currencyCode
+            currencyCode: item.priceRange.maxVariantPrice.currencyCode,
+            isPreorder: hasAnyPreorderVariant(item)
           }}
         />
       </Link>

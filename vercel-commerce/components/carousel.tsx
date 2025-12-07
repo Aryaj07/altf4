@@ -1,6 +1,7 @@
 import { getServerCategories, getServerCategoryProducts,} from 'lib/medusa/server';
 import Link from 'next/link';
 import { GridTileImage } from './grid/tile';
+import { hasAnyPreorderVariant } from 'lib/preorder-utils';
 
 export async function Carousel() {
   try {
@@ -63,7 +64,8 @@ export async function Carousel() {
                   label={{
                     title: product.title,
                     amount,
-                    currencyCode
+                    currencyCode,
+                    isPreorder: hasAnyPreorderVariant(product)
                   }}
                   src={product.featuredImage?.url}
                   fill

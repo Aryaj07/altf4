@@ -163,7 +163,7 @@ const ShippingPolicy = () => {
                           <span data-custom-class="body_text">Free</span>
                         </td>
                         <td style={{ textAlign: 'center', padding: '8px' }}>
-                          <span data-custom-class="body_text">Rs 300/-</span>
+                          <span data-custom-class="body_text">Rs 200/-</span>
                         </td>
                       </tr>
                     </tbody>

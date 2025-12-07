@@ -236,7 +236,7 @@ export async function getServerProducts({
     const regionId = regionRes?.body?.regions?.[0]?.id;
 
     // Construct the path with region_id
-    let path = `/products?limit=100&fields=+*variants.prices`;
+    let path = `/products?limit=100&fields=+*variants.prices,+*variants.preorder_variant`;
     if (regionId) {
       path += `&region_id=${regionId}`;
     }

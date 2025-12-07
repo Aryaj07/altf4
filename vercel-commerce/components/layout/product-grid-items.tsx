@@ -1,6 +1,7 @@
 import Grid from 'components/grid';
 import { GridTileImage } from 'components/grid/tile';
 import { Product } from 'lib/medusa/types';
+import { hasAnyPreorderVariant } from 'lib/preorder-utils';
 import Link from 'next/link';
 
 export default function ProductGridItems({ products }: { products: Product[] }) {
@@ -14,7 +15,8 @@ export default function ProductGridItems({ products }: { products: Product[] }) 
               label={{
                 title: product.title,
                 amount: product.priceRange.maxVariantPrice.amount,
-                currencyCode: product.priceRange.maxVariantPrice.currencyCode
+                currencyCode: product.priceRange.maxVariantPrice.currencyCode,
+                isPreorder: hasAnyPreorderVariant(product)
               }}
               src={product.featuredImage?.url}
               fill

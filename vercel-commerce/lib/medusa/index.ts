@@ -483,7 +483,7 @@ export async function getCategoryProducts(
     // Then get all products in this category
     const productRes = await medusaRequest({
       method: 'GET',
-      path: `/products?category_id[]=${category.id}&limit=100&cart_id=${cartId}&fields=+*variants.calculated_price`,
+      path: `/products?category_id[]=${category.id}&limit=100&cart_id=${cartId}&fields=+*variants.calculated_price,+*variants.preorder_variant`,
       tags: ['products']
     });
 
@@ -570,17 +570,17 @@ export async function getProducts({
   if (query) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?q=${query}&limit=100&fields=+*variants.calculated_price`,
+      path: `/products?q=${query}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant`,
       tags: ['products']
     });
   } else if (categoryId) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.calculated_price`,
+      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant`,
       tags: ['products']
     });
   } else {
-    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.calculated_price`, tags: ['products'] });
+    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant`, tags: ['products'] });
   }
 
   if (!res) {
