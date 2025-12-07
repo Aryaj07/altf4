@@ -1,5 +1,6 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { PreorderStatus } from "../../modules/preorder/models/preorder"
+import { IPreorderModuleService } from "../../types/preorder";
 
 type StepInput = {
   id: string
@@ -11,7 +12,7 @@ type StepInput = {
 export const updatePreordersStep = createStep(
   "update-preorders",
   async (preorders: StepInput, { container }) => {
-    const preorderModuleService = container.resolve("preorder")
+    const preorderModuleService: IPreorderModuleService = container.resolve("preorder")
 
     const oldPreorders = await preorderModuleService.listPreorders({
       id: preorders.map((preorder) => preorder.id)
@@ -28,7 +29,7 @@ export const updatePreordersStep = createStep(
       return
     }
 
-    const preorderModuleService = container.resolve("preorder")
+    const preorderModuleService: IPreorderModuleService = container.resolve("preorder")
 
     await preorderModuleService.updatePreorders(
       preorders.map((preorder) => ({

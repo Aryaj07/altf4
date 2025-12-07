@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { IPreorderModuleService } from "../../types/preorder";
 
 type StepInput = {
   preorder_variant_ids: string[]
@@ -11,7 +12,7 @@ export const createPreordersStep = createStep(
     preorder_variant_ids,
     order_id
   }: StepInput, { container }) => {
-    const preorderModuleService = container.resolve("preorder")
+    const preorderModuleService: IPreorderModuleService = container.resolve("preorder")
 
     const preorders = await preorderModuleService.createPreorders(
       preorder_variant_ids.map((id) => ({
@@ -27,7 +28,7 @@ export const createPreordersStep = createStep(
       return
     }
 
-    const preorderModuleService = container.resolve("preorder")
+    const preorderModuleService: IPreorderModuleService = container.resolve("preorder")
 
     await preorderModuleService.deletePreorders(preorderIds)
   }
