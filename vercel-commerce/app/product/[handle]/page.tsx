@@ -13,8 +13,28 @@ import Link from 'next/link';
 import Reviews from '@/components/review/review';
 // import AddReview from '@/components/review/add-review';
 import SummaryReview from '@/components/review/summary-review';
+import { sdkReview } from "@/lib/sdk/sdk-review";
+import { Breadcrumb } from 'components/product/breadcrumb';
 
 export const runtime = 'edge';
+
+// Helper function to get review stats for structured data
+async function getReviewStats(productId: string): Promise<any | null> {
+  try {
+    const res = await sdkReview.store.productReviews.listStats({
+      product_id: productId,
+      offset: 0,
+      limit: 100,
+    });
+    if (res && (res as any).product_review_stats && (res as any).product_review_stats.length > 0) {
+      return (res as any).product_review_stats[0];
+    }
+    return null;
+  } catch (err) {
+    console.error("Failed to fetch review stats for structured data", err);
+    return null;
+  }
+}
 
 export async function generateMetadata({
   params
@@ -33,10 +53,21 @@ export async function generateMetadata({
 
     const { url, width, height, altText: alt } = product.featuredImage || {};
     const indexable = !product.tags.includes(HIDDEN_PRODUCT_TAG);
+    
+    // Strip HTML tags from description for meta tags
+    const cleanDescription = product.description
+      ? product.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+      : product.title;
+    
+    const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL;
+    const productUrl = `${baseUrl}/product/${product.handle}`;
 
     return {
       title: product.title,
-      description: product.description,
+      description: cleanDescription,
+      alternates: {
+        canonical: productUrl
+      },
       robots: {
         index: indexable,
         follow: indexable,
@@ -47,6 +78,9 @@ export async function generateMetadata({
       },
       openGraph: url
         ? {
+            title: product.title,
+            description: cleanDescription,
+            url: productUrl,
             images: [
               {
                 url,
@@ -56,7 +90,13 @@ export async function generateMetadata({
               }
             ]
           }
-        : null
+        : null,
+      twitter: {
+        card: 'summary_large_image',
+        title: product.title,
+        description: cleanDescription,
+        images: url ? [url] : undefined
+      }
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
@@ -74,20 +114,122 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
       return notFound();
     }
 
-    const productJsonLd = {
+    // Fetch review stats for structured data
+    const reviewStats = await getReviewStats(product.id!);
+
+    // Build comprehensive Schema.org Product structured data
+    const productJsonLd: any = {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.title,
-      description: product.description,
-      image: product.featuredImage.url,
+      description: product.description || product.title,
+      image: product.images?.map(img => img.url) || [product.featuredImage.url],
+      sku: product.variants?.[0]?.sku || undefined,
+      brand: {
+        '@type': 'Brand',
+        name: 'Altf4'
+      },
       offers: {
-        '@type': 'AggregateOffer',
+        '@type': 'Offer',
+        url: `${process.env.NEXT_PUBLIC_VERCEL_URL}/product/${product.handle}`,
+        priceCurrency: product.priceRange.maxVariantPrice.currencyCode,
+        price: product.priceRange.maxVariantPrice.amount,
+        lowPrice: product.variants?.[0]?.prices?.[0]?.amount || product.priceRange.maxVariantPrice.amount,
         availability: product.availableForSale
           ? 'https://schema.org/InStock'
           : 'https://schema.org/OutOfStock',
-        priceCurrency: product.priceRange.maxVariantPrice.currencyCode,
-        highPrice: product.priceRange.maxVariantPrice.amount
+        priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+        itemCondition: 'https://schema.org/NewCondition',
+        seller: {
+          '@type': 'Organization',
+          name: 'Altf4'
+        }
       }
+    };
+
+    // Add aggregate rating if reviews exist
+    if (reviewStats && reviewStats.review_count > 0 && reviewStats.average_rating) {
+      productJsonLd.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: reviewStats.average_rating.toFixed(1),
+        reviewCount: reviewStats.review_count,
+        bestRating: '5',
+        worstRating: '1'
+      };
+    }
+
+    // Add review if we have at least one review
+    if (reviewStats && reviewStats.review_count > 0) {
+      productJsonLd.review = {
+        '@type': 'Review',
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: reviewStats.average_rating?.toFixed(1) || '5',
+          bestRating: '5'
+        },
+        author: {
+          '@type': 'Person',
+          name: 'Verified Customer'
+        }
+      };
+    }
+
+    // Build BreadcrumbList structured data
+    const breadcrumbItems: any[] = [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: process.env.NEXT_PUBLIC_VERCEL_URL
+      }
+    ];
+
+    // Add category breadcrumbs if product has categories
+    if (product.categories && product.categories.length > 0) {
+      const category = product.categories[0]; // Use first category
+      let position = 2;
+
+      // Build category hierarchy (if parent categories exist)
+      const categoryPath: any[] = [];
+      let currentCategory = category;
+      
+      // Traverse up the category tree
+      while (currentCategory) {
+        categoryPath.unshift(currentCategory);
+        currentCategory = currentCategory.parent_category as any;
+      }
+
+      // Add each category level to breadcrumb
+      categoryPath.forEach((cat) => {
+        breadcrumbItems.push({
+          '@type': 'ListItem',
+          position: position++,
+          name: cat.name,
+          item: `${process.env.NEXT_PUBLIC_VERCEL_URL}/search/${cat.handle}`
+        });
+      });
+
+      // Add product as final breadcrumb
+      breadcrumbItems.push({
+        '@type': 'ListItem',
+        position: position,
+        name: product.title,
+        item: `${process.env.NEXT_PUBLIC_VERCEL_URL}/product/${product.handle}`
+      });
+    } else {
+      // If no categories, just add product after home
+      breadcrumbItems.push({
+        '@type': 'ListItem',
+        position: 2,
+        name: product.title,
+        item: `${process.env.NEXT_PUBLIC_VERCEL_URL}/product/${product.handle}`
+      });
+    }
+
+    const breadcrumbJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: breadcrumbItems
     };
 
     return (
@@ -98,9 +240,23 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
             __html: JSON.stringify(productJsonLd),
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(breadcrumbJsonLd),
+          }}
+        />
         <div className="mx-auto max-w-screen-2xl px-4">
           <div className="flex flex-col rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black md:p-12 lg:flex-row lg:flex-wrap">
             
+            {/* Breadcrumb Navigation */}
+            <div className="basis-full">
+              <Breadcrumb items={breadcrumbItems.map(item => ({
+                name: item.name,
+                href: item.item
+              }))} />
+            </div>
+
             {/* Left column: Gallery */}
             <div className="h-full w-full basis-full lg:basis-4/6">
               <Gallery
@@ -116,54 +272,27 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
               <ProductDescriptionWrapper product={product} />
             </div>
 
-            {/* Full width row: Reviews & other functions */}
-            {/* <div className="basis-full mt-10">
+            {/* Full width row: Reviews & Summary */}
+            <div className="basis-full mt-10">
               <div className="rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black">
-                <h2 className="text-xl font-semibold mb-4">Customer Reviews</h2>
-                <Suspense fallback={<div>Loading reviews...</div>}>
-                  <Reviews productId={product.id!} />
-                </Suspense>
+                <h2 className="text-xl font-semibold mb-6">Customer Reviews</h2>
 
-                <div className="mt-6">
-                  <Suspense>
-                    <AddReview
-                      orderId="order"
-                      orderLineItemId="replace-with-order-line-item-id"
-                    />
-                  </Suspense>
+                <div className="flex flex-col lg:flex-row gap-8">
+                  {/* Left side: Review summary */}
+                  <div className="lg:w-1/3">
+                    <SummaryReview productId={product.id!} />
+                  </div>
+
+                  {/* Right side: Individual reviews */}
+                  <div className="lg:w-2/3 space-y-8">
+                    {/* Example review */}
+                    <div className="pb-4">
+                      <Reviews productId={product.id!} />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div> */}
-            {/* Full width row: Reviews & Summary */}
-<div className="basis-full mt-10">
-  <div className="rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black">
-    <h2 className="text-xl font-semibold mb-6">Customer Reviews</h2>
-
-    <div className="flex flex-col lg:flex-row gap-8">
-      {/* Left side: Review summary */}
-      <div className="lg:w-1/3">
-        <SummaryReview productId={product.id!} />
-      </div>
-
-      {/* Right side: Individual reviews */}
-      <div className="lg:w-2/3 space-y-8">
-        {/* Example review */}
-        <div className="pb-4">
-           <Reviews productId={product.id!} />
-        </div>
-      </div>
-    </div>
-          {/* Review form
-          <div className="mt-10">
-            <Suspense>
-              <AddReview
-                orderId="order"
-                orderLineItemId="replace-with-order-line-item-id"
-              />
-            </Suspense>
-          </div> */}
-        </div>
-      </div>
+            </div>
           </div>
 
           {/* Related Products */}

@@ -9,6 +9,7 @@ import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import Handlebars from "handlebars"
 import orderConfirmationTemplate from "../modules/review_notification/orderConfimationTemplate"
 import ReviewService from "../modules/auto_mail/service"
+import { generateInvoicePdfWorkflow } from "../workflows/generate-invoice-pdf"
 
 export default async function handleOrderPlaced({ 
   event,
@@ -61,7 +62,22 @@ export default async function handleOrderPlaced({
   logger.info(`order-placed: stored review request for item: ${item.id}`)
   }
 
-  // 3) Send order confirmation email via Notification module (email-provider)
+  // 3) Generate invoice PDF
+  let pdfBuffer: Buffer | null = null
+  try {
+    const { result: { pdf_buffer } } = await generateInvoicePdfWorkflow(container)
+      .run({
+        input: {
+          order_id: orderId
+        }
+      })
+    pdfBuffer = Buffer.from(pdf_buffer)
+    logger.info(`order-placed: generated invoice PDF for order ${order.id}`)
+  } catch (e: any) {
+    logger.error(`order-placed: failed to generate invoice PDF -> ${e?.message || e}`)
+  }
+
+  // 4) Send order confirmation email via Notification module (email-provider)
   try {
     const notificationModuleService = container.resolve(Modules.NOTIFICATION)
 
@@ -157,6 +173,16 @@ export default async function handleOrderPlaced({
     const toEmail = (order as any)?.email
     if (toEmail) {
       const subject = `Order confirmed: ${(order as any)?.id}`
+      
+      // Prepare Mailjet attachment format if PDF was generated
+      const mailjetAttachments = pdfBuffer ? [
+        {
+          ContentType: "application/pdf",
+          Filename: `invoice-${order.id}.pdf`,
+          Base64Content: pdfBuffer.toString('base64'),
+        }
+      ] : undefined
+
       await notificationModuleService.createNotifications({
         // Placeholder recipient for records; provider reads from data.messages
         to: "batch-review-mails",
@@ -171,6 +197,7 @@ export default async function handleOrderPlaced({
               HTMLPart: html,
               TrackOpens: "disabled",
               TrackClicks: "disabled",
+              ...(mailjetAttachments && { Attachments: mailjetAttachments }),
             },
           ],
         },

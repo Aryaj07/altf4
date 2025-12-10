@@ -18,10 +18,29 @@ export async function generateMetadata({
 
   if (!categoryData) return notFound();
 
+  const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL;
+  
+  const title = categoryData.seo?.title || `${categoryData.title} - Gaming Gear | Altf4`;
+  const description = categoryData.seo?.description || categoryData.description || `Shop ${categoryData.title} products at Altf4. Premium gaming peripherals with fast shipping across India.`;
+
   return {
-    title: categoryData.seo?.title || categoryData.title,
-    description:
-      categoryData.seo?.description || categoryData.description || `${categoryData.title} products`
+    title,
+    description,
+    alternates: {
+      canonical: `${baseUrl}/search/${collection}`
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/search/${collection}`,
+      type: 'website',
+      images: categoryData.metadata?.image ? [{ url: categoryData.metadata.image as string }] : undefined
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description
+    }
   };
 }
 

@@ -51,6 +51,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/auto_mail",
     },
     {
+      resolve: "./src/modules/invoice-generator",
+    },
+    {
       resolve: "./src/modules/preorder",
     },
     {

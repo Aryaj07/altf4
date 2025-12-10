@@ -15,6 +15,7 @@ import {
   Grid,
   Switch,
 } from "@mantine/core";
+import { INDIAN_STATES_WITH_CODES, getStateCode } from "@/components/checkout/indian-states";
 
 import { useForm } from "@mantine/form";
 import {
@@ -219,6 +220,7 @@ export default function AddressManagement() {
       let addressId = editingAddress?.id;
       // The payload no longer needs the is_default_shipping flag here.
       // We will handle that with the dedicated function.
+      const stateCode = values.state ? getStateCode(values.state) : undefined;
       const addressPayload = {
         first_name: values.firstName,
         last_name: values.lastName,
@@ -226,7 +228,7 @@ export default function AddressManagement() {
         address_1: values.address,
         address_2: values.address_2 || "",
         city: values.city,
-        province: values.state,
+        province: stateCode || values.state, // Send state code for GST calculations
         postal_code: values.postalCode,
         phone: values.phone,
         country_code: values.country,
@@ -420,7 +422,14 @@ export default function AddressManagement() {
                 <TextInput label="City" placeholder="Enter city" required {...addressForm.getInputProps("city")} />
               </Grid.Col>
               <Grid.Col span={6}>
-                <TextInput label="State/Province" placeholder="Enter state" {...addressForm.getInputProps("state")} />
+                <Select
+                  label="State/Province"
+                  placeholder="Select state"
+                  data={INDIAN_STATES_WITH_CODES.map(s => ({ value: s.name, label: s.name }))}
+                  searchable
+                  required
+                  {...addressForm.getInputProps("state")}
+                />
               </Grid.Col>
             </Grid>
             <Grid>

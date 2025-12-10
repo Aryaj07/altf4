@@ -1,11 +1,19 @@
 import { defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http"
 import type { MedusaNextFunction, MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { UpsertPreorderVariantSchema } from "./admin/variants/[id]/preorders/route"
+import { PostInvoiceConfgSchema } from "./admin/invoice-config/route"
 import * as fs from "fs"
 import * as path from "path"
 
 export default defineMiddlewares({
   routes: [
+        {
+      matcher: "/admin/invoice-config",
+      methods: ["POST"],
+      middlewares: [
+        validateAndTransformBody(PostInvoiceConfgSchema as any)
+      ]
+    },
     {
       matcher: "/static/*",
       method: "GET",

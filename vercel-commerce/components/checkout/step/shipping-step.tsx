@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "components/cart/cart-context";
 import { useAccount } from "components/account/account-context";
 import { sdk } from "@/lib/sdk/sdk";
+import { INDIAN_STATES_WITH_CODES, getStateCode } from "@/components/checkout/indian-states";
 import {
   TextInput,
   Select,
@@ -37,6 +38,7 @@ interface SavedAddress {
   last_name: string;
   address_1: string;
   city: string;
+  province: string;
   country_code: string;
   postal_code: string;
   phone: string;
@@ -71,6 +73,7 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
             last_name: addr.last_name,
             address_1: addr.address_1,
             city: addr.city,
+            province: addr.province || "",
             country_code: addr.country_code,
             postal_code: addr.postal_code,
             phone: addr.phone,
@@ -114,20 +117,24 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
       return;
     }
     setIsSubmitting(true);
+    const stateCode = form.values.state ? getStateCode(form.values.state) : undefined;
     const shippingAddress = {
       first_name: form.values.firstName,
       last_name: form.values.lastName,
       address_1: form.values.address,
       city: form.values.city,
+      province: stateCode || form.values.state,
       postal_code: form.values.postalCode,
       country_code: getCountryCode(form.values.country),
       phone: form.values.phone,
     };
+    const billingStateCode = billingForm.values.state ? getStateCode(billingForm.values.state) : undefined;
     const billingData = billingSame ? shippingAddress : {
       first_name: billingForm.values.firstName,
       last_name: billingForm.values.lastName,
       address_1: billingForm.values.address,
       city: billingForm.values.city,
+      province: billingStateCode || billingForm.values.state,
       postal_code: billingForm.values.postalCode,
       country_code: getCountryCode(billingForm.values.country),
       phone: billingForm.values.phone,
@@ -165,6 +172,7 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
       last_name: selectedAddress.last_name,
       address_1: selectedAddress.address_1,
       city: selectedAddress.city,
+      province: selectedAddress.province,
       postal_code: selectedAddress.postal_code,
       country_code: selectedAddress.country_code,
       phone: selectedAddress.phone,
@@ -185,11 +193,16 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
       const res = await fetch("/api/cart");
       if (res.ok) setCart(await res.json());
       const countryName = cart.region?.countries?.find((c: any) => c.iso_2 === selectedAddress.country_code)?.display_name || "";
+      
+      // Get state name from state code for form completion
+      const stateName = INDIAN_STATES_WITH_CODES.find(s => s.code === selectedAddress.province)?.name || selectedAddress.province || "";
+      
       onComplete({
         firstName: selectedAddress.first_name,
         lastName: selectedAddress.last_name,
         address: selectedAddress.address_1,
         city: selectedAddress.city,
+        state: stateName,
         postalCode: selectedAddress.postal_code,
         country: countryName,
         phone: selectedAddress.phone || "",
@@ -292,6 +305,18 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
                 <TextInput label="City" placeholder="Enter city" required {...form.getInputProps("city")} />
               </Grid.Col>
               <Grid.Col span={6}>
+                <Select
+                  label="State/Province"
+                  placeholder="Select state"
+                  data={INDIAN_STATES_WITH_CODES.map(s => ({ value: s.name, label: s.name }))}
+                  searchable
+                  required
+                  {...form.getInputProps("state")}
+                />
+              </Grid.Col>
+            </Grid>
+            <Grid>
+              <Grid.Col span={6}>
                 <TextInput label="Postal Code" placeholder="Enter postal code" required {...form.getInputProps("postalCode")}
                   onChange={(event) => {
                     const value = event.target.value.replace(/\D/g, "").slice(0, 6);
@@ -299,6 +324,7 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
                   }}
                 />
               </Grid.Col>
+              <Grid.Col span={6}></Grid.Col>
             </Grid>
             <Select label="Country" placeholder="Select country" data={countryOptions} required searchable {...form.getInputProps("country")} />
             <TextInput label="Phone Number" placeholder="Enter phone number" required {...form.getInputProps("phone")}
@@ -326,6 +352,18 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
                     <TextInput label="City" placeholder="Enter city" required {...billingForm.getInputProps("city")} />
                   </Grid.Col>
                   <Grid.Col span={6}>
+                    <Select
+                      label="State/Province"
+                      placeholder="Select state"
+                      data={INDIAN_STATES_WITH_CODES.map(s => ({ value: s.name, label: s.name }))}
+                      searchable
+                      required
+                      {...billingForm.getInputProps("state")}
+                    />
+                  </Grid.Col>
+                </Grid>
+                <Grid>
+                  <Grid.Col span={6}>
                     <TextInput label="Postal Code" placeholder="Enter postal code" required {...billingForm.getInputProps("postalCode")}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, "").slice(0, 6);
@@ -333,6 +371,7 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
                       }}
                     />
                   </Grid.Col>
+                  <Grid.Col span={6}></Grid.Col>
                 </Grid>
                 <Select label="Country" placeholder="Select country" data={countryOptions} searchable required {...billingForm.getInputProps("country")} />
                 <TextInput label="Phone Number" placeholder="Enter phone number" required {...billingForm.getInputProps("phone")}

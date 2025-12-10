@@ -117,5 +117,5 @@ export default async function myCustomJob(container: MedusaContainer) {
 
 export const config = {
   name: "daily-product-report-and-review-trigger",
-  schedule: "0 10 * * 1", // Every Monday at 10 AM
+  schedule: "0 0 * * *", // Every day at midnight
 };

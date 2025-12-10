@@ -11,16 +11,13 @@ export default async function fulfillPreordersJob(container: MedusaContainer) {
 
   logger.info("Starting daily fulfill preorders job...")
 
-  const startToday = new Date()
-  startToday.setHours(0, 0, 0, 0)
-
-  const endToday = new Date()
-  endToday.setHours(23, 59, 59, 59)
+  const now = new Date()
 
   const limit = 1000
   let preorderVariantsOffset = 0
   let preorderVariantsCount = 0
-  let totalPreordersCount = 0
+  let successfulFulfillments = 0
+  let failedFulfillments = 0
 
   do {
     const { 
@@ -34,10 +31,9 @@ export default async function fulfillPreordersJob(container: MedusaContainer) {
       ],
       filters: {
         status: "enabled",
-        // available_date: {
-        //   $gte: startToday,
-        //   $lte: endToday
-        // }
+        available_date: {
+          $lte: now  // Only fulfill preorders whose available date has passed
+        }
       },
       pagination: {
         take: limit,
@@ -84,15 +80,17 @@ export default async function fulfillPreordersJob(container: MedusaContainer) {
               order_id: preorder!.order_id
             }
           })
+          successfulFulfillments++
+          logger.info(`Successfully fulfilled preorder ${preorder.id}`)
         } catch (e) {
+          failedFulfillments++
           logger.error(`Failed to fulfill preorder ${preorder.id}: ${e.message}`)
         }
       }
     } while (preordersCount > limit * preordersOffset)
-    totalPreordersCount += preordersCount
   } while (preorderVariantsCount > limit * preorderVariantsOffset)
 
-  logger.info(`Fulfilled ${totalPreordersCount} preorders.`)
+  logger.info(`Preorder fulfillment job completed. Successful: ${successfulFulfillments}, Failed: ${failedFulfillments}`)
 }
 
 export const config = {
