@@ -1,6 +1,7 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { INVOICE_MODULE } from "../../modules/invoice-generator"
 import { InvoiceStatus } from "../../modules/invoice-generator/models/invoice"
+import InvoiceModuleService from "../../modules/invoice-generator/service"
 
 type StepInput = {
   order_id: string
@@ -9,7 +10,7 @@ type StepInput = {
 export const getOrderInvoiceStep = createStep(
   "get-order-invoice",
   async ({ order_id }: StepInput, { container }) => {
-    const invoiceGeneratorService = container.resolve(INVOICE_MODULE)
+    const invoiceGeneratorService = container.resolve(INVOICE_MODULE) as InvoiceModuleService
     let [invoice] = await invoiceGeneratorService.listInvoices({
       order_id,
       status: InvoiceStatus.LATEST
@@ -36,7 +37,7 @@ export const getOrderInvoiceStep = createStep(
     if (!created_invoice || !invoice_id) {
       return
     }
-    const invoiceGeneratorService = container.resolve(INVOICE_MODULE)
+    const invoiceGeneratorService = container.resolve(INVOICE_MODULE) as InvoiceModuleService
 
     invoiceGeneratorService.deleteInvoices(invoice_id)
   }
