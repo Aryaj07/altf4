@@ -10,9 +10,7 @@ import Banner from 'components/layout/navbar/banner';
 
 
 const { TWITTER_CREATOR, TWITTER_SITE, SITE_NAME } = process.env;
-const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-  : 'http://localhost:3000';
+const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
 
 const siteDescription = 'Premium gaming peripherals and accessories. Shop high-performance keyboards, mice, and gaming gear at Altf4. Fast shipping across India.';
 
