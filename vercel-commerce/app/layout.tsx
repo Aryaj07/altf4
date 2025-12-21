@@ -14,6 +14,13 @@ const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
 
 const siteDescription = 'Premium gaming peripherals and accessories. Shop high-performance keyboards, mice, and gaming gear at Altf4. Fast shipping across India.';
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
+
 export const metadata = {
   metadataBase: new URL(baseUrl),
   title: {

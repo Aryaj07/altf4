@@ -51,28 +51,30 @@ export default async function SummaryReview({ productId }: { productId: string }
   const starPercentages = getStarPercentages(statsArr);
 
   return (
-    <div className="">
-      <div className="flex items-center mb-4">
-        <span className="text-2xl font-bold">{average}</span>
-        <div className="ml-2 text-yellow-500">
-          {"★".repeat(Math.round(stats.average_rating || 0)).padEnd(5, "☆")}
+    <div className="lg:sticky lg:top-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <span className="text-3xl sm:text-4xl font-bold">{average}</span>
+        <div className="flex flex-col gap-1">
+          <div className="text-yellow-500 text-xl sm:text-2xl">
+            {"★".repeat(Math.round(stats.average_rating || 0)).padEnd(5, "☆")}
+          </div>
+          <span className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
+            Based on {total} review{total === 1 ? "" : "s"}
+          </span>
         </div>
-        <span className="ml-2 text-sm text-gray-500">
-          Based on {total} review{total === 1 ? "" : "s"}
-        </span>
       </div>
 
       {/* Star breakdown */}
       {[5, 4, 3, 2, 1].map((star, idx) => (
-        <div key={star} className="flex items-center mb-2">
-          <span className="w-8 text-sm">{star} ★</span>
-          <div className="flex-1 h-2 mx-2 bg-gray-200 rounded">
+        <div key={star} className="flex items-center mb-2 sm:mb-3">
+          <span className="w-8 sm:w-10 text-xs sm:text-sm font-medium">{star} ★</span>
+          <div className="flex-1 h-2 mx-2 sm:mx-3 bg-neutral-200 dark:bg-neutral-700 rounded-full">
             <div
-              className="h-2 bg-yellow-500 rounded"
+              className="h-2 bg-yellow-500 rounded-full transition-all duration-300"
               style={{ width: `${starPercentages[idx]}%` }}
             ></div>
           </div>
-          <span className="w-10 text-sm text-gray-600">
+          <span className="w-10 sm:w-12 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 text-right">
             {starPercentages[idx]}%
           </span>
         </div>

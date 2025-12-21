@@ -272,23 +272,116 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
               <ProductDescriptionWrapper product={product} />
             </div>
 
+            {/* Full width row: Product Features */}
+            <div className="basis-full mt-8">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8 lg:gap-10 py-8 border-t border-b border-neutral-200 dark:border-neutral-800">
+                {/* Free Shipping */}
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="w-12 h-12">
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                      <path d="M8 20h32v20H8z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M40 28h8l6 6v6h-14v-12z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <circle cx="18" cy="44" r="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <circle cx="46" cy="44" r="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M4 16h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Free Shipping</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">On orders above Rs.999</p>
+                  </div>
+                </div>
+
+                {/* Secured Payment */}
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="w-12 h-12">
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                      <rect x="12" y="16" width="40" height="28" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M12 24h40" stroke="currentColor" strokeWidth="2"/>
+                      <circle cx="32" cy="34" r="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M32 32v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Secured Payment</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">100% protected</p>
+                  </div>
+                </div>
+
+                {/* 1 Year Warranty */}
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="w-12 h-12">
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                      <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M32 20v12l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <text x="32" y="48" textAnchor="middle" fontSize="10" fill="currentColor" fontWeight="bold">1Y</text>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">1 Year Warranty</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Full coverage</p>
+                  </div>
+                </div>
+
+                {/* Free Skates */}
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="w-12 h-12">
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                      {/* Rectangle representing skate sheet */}
+                      <rect x="12" y="12" width="40" height="40" rx="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      {/* Dots pattern representing individual skates - 4x4 grid */}
+                      <circle cx="22" cy="22" r="2.5" fill="currentColor"/>
+                      <circle cx="32" cy="22" r="2.5" fill="currentColor"/>
+                      <circle cx="42" cy="22" r="2.5" fill="currentColor"/>
+                      <circle cx="22" cy="32" r="2.5" fill="currentColor"/>
+                      <circle cx="32" cy="32" r="2.5" fill="currentColor"/>
+                      <circle cx="42" cy="32" r="2.5" fill="currentColor"/>
+                      <circle cx="22" cy="42" r="2.5" fill="currentColor"/>
+                      <circle cx="32" cy="42" r="2.5" fill="currentColor"/>
+                      <circle cx="42" cy="42" r="2.5" fill="currentColor"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Free Skates</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">With keyboards & mice</p>
+                  </div>
+                </div>
+
+                {/* 7 Days Replacement */}
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="w-12 h-12">
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                      <circle cx="32" cy="32" r="18" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M32 20v12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M44 20l6-6M20 20l-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M22 16c0-2 2-4 4-4h12c2 0 4 2 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">7 Days Replacement</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">For defective products</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Full width row: Reviews & Summary */}
             <div className="basis-full mt-10">
-              <div className="rounded-lg border border-neutral-200 bg-white p-8 dark:border-neutral-800 dark:bg-black">
-                <h2 className="text-xl font-semibold mb-6">Customer Reviews</h2>
+              <div className="rounded-lg border border-neutral-200 bg-white p-4 sm:p-6 md:p-8 dark:border-neutral-800 dark:bg-black">
+                <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Customer Reviews</h2>
 
-                <div className="flex flex-col lg:flex-row gap-8">
-                  {/* Left side: Review summary */}
-                  <div className="lg:w-1/3">
+                <div className="flex flex-col gap-6 sm:gap-8">
+                  {/* Review summary - full width on mobile, 1/3 on desktop */}
+                  <div className="w-full lg:w-auto">
                     <SummaryReview productId={product.id!} />
                   </div>
 
-                  {/* Right side: Individual reviews */}
-                  <div className="lg:w-2/3 space-y-8">
-                    {/* Example review */}
-                    <div className="pb-4">
-                      <Reviews productId={product.id!} />
-                    </div>
+                  {/* Divider on mobile */}
+                  <div className="border-t border-neutral-200 dark:border-neutral-800 lg:hidden"></div>
+
+                  {/* Individual reviews - full width on mobile, 2/3 on desktop */}
+                  <div className="w-full">
+                    <Reviews productId={product.id!} />
                   </div>
                 </div>
               </div>

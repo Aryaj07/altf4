@@ -108,7 +108,7 @@ export default async function Footer() {
             <div className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
               <p>Join our growing community</p>
               <a 
-                href="https://discord.gg/J8r6XZDh" 
+                href="https://discord.gg/ZSJhnsrxtY" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#4752C4]"

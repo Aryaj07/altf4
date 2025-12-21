@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 
 const messages = [
-  { text: 'Pre-order MAD 68 PRO & save ₹333 (auto applied on checkout)! 🚀', link: null },
-  { text: 'Pre-order MAD 68 HE & save ₹200 (auto applied on checkout)! 🚀', link: null },
+  { text: 'Order MAD 68 PRO & save ₹333 (auto applied on checkout)! 🚀', link: null },
+  { text: 'Order MAD 68 HE & save ₹200 (auto applied on checkout)! 🚀', link: null },
   { text: 'Free shipping on orders over ₹999! 🎉', link: null },
   { text: 'Free skates (random) on all keyboard and mouse orders! 🎉', link: null },
 ];

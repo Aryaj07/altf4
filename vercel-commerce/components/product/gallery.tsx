@@ -35,7 +35,7 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
   const previousUrl = createUrl(pathname, previousSearchParams);
 
   const buttonClassName =
-    'h-full px-6 transition-all ease-in-out hover:scale-110 hover:text-black dark:hover:text-white flex items-center justify-center';
+    'h-full px-3 sm:px-6 transition-all ease-in-out hover:scale-110 hover:text-black dark:hover:text-white flex items-center justify-center';
 
   return (
     <>
@@ -50,31 +50,31 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
             priority={true}
           />
         )}
-
-        {images.length > 1 ? (
-          <div className="absolute bottom-[15%] flex w-full justify-center">
-            <div className="mx-auto flex h-11 items-center rounded-full border border-white bg-neutral-50/80 text-neutral-500 backdrop-blur dark:border-black dark:bg-neutral-900/80">
-              <Link
-                aria-label="Previous product image"
-                href={previousUrl}
-                className={buttonClassName}
-                scroll={false}
-              >
-                <ArrowLeftIcon className="h-5" />
-              </Link>
-              <div className="mx-1 h-6 w-px bg-neutral-500"></div>
-              <Link
-                aria-label="Next product image"
-                href={nextUrl}
-                className={buttonClassName}
-                scroll={false}
-              >
-                <ArrowRightIcon className="h-5" />
-              </Link>
-            </div>
-          </div>
-        ) : null}
       </div>
+
+      {images.length > 1 ? (
+        <div className="mt-4 flex w-full justify-center">
+          <div className="flex h-10 sm:h-12 items-center gap-4 rounded-full border border-neutral-200 bg-white px-4 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900">
+            <Link
+              aria-label="Previous product image"
+              href={previousUrl}
+              className={buttonClassName}
+              scroll={false}
+            >
+              <ArrowLeftIcon className="h-5 sm:h-6" />
+            </Link>
+            <div className="h-6 sm:h-8 w-px bg-neutral-300 dark:bg-neutral-700"></div>
+            <Link
+              aria-label="Next product image"
+              href={nextUrl}
+              className={buttonClassName}
+              scroll={false}
+            >
+              <ArrowRightIcon className="h-5 sm:h-6" />
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       {images.length > 1 ? (
         <ul className="my-12 flex items-center justify-center gap-2 overflow-auto py-1 lg:mb-0">
@@ -85,12 +85,12 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
             imageSearchParams.set('image', index.toString());
 
             return (
-              <li key={image.src} className="h-auto w-20">
+              <li key={image.src} className="h-20 w-20 flex-shrink-0">
                 <Link
                   aria-label="Enlarge product image"
                   href={createUrl(pathname, imageSearchParams)}
                   scroll={false}
-                  className="h-full w-full"
+                  className="h-full w-full block"
                 >
                   <GridTileImage
                     alt={image.altText}
