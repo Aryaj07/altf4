@@ -87,6 +87,7 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
             return (
               <li key={image.src} className="h-20 w-20 flex-shrink-0">
                 <Link
+                  replace
                   aria-label="Enlarge product image"
                   href={createUrl(pathname, imageSearchParams)}
                   scroll={false}
