@@ -7,7 +7,6 @@ import MantineClientProvider from 'components/providers/mantine-client-provider'
 import { AccountProvider } from '@/components/account/account-context';
 import { cookies } from 'next/headers';
 import Banner from 'components/layout/navbar/banner';
-import SnowfallEffect from '@/components/snowfall-effect';
 
 
 const { TWITTER_CREATOR, TWITTER_SITE, SITE_NAME } = process.env;
@@ -127,7 +126,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="bg-neutral-50 text-black selection:bg-teal-300 dark:bg-neutral-900 dark:text-white dark:selection:bg-pink-500 dark:selection:text-white">
-        <SnowfallEffect />
         <AccountProvider token={token}> 
           <MantineClientProvider>
             <CartProvider>
