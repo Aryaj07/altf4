@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 
 export const runtime = 'edge';
 
-export const revalidate = 43200; // 12 hours
+export const revalidate = 60; // 60 seconds - webhooks handle instant updates
 
 export async function generateMetadata({
   params

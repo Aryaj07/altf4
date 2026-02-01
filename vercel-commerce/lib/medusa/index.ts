@@ -3,7 +3,7 @@ import { isMedusaError } from 'lib/type-guards';
 
 import { TAGS } from 'lib/constants';
 import { mapOptionIds } from 'lib/utils';
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import { headers,cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateVariantAmount, computeAmount, convertToDecimal } from './helpers';
@@ -524,11 +524,9 @@ function isMedusaProduct(product: unknown): product is MedusaProduct {
 
 export async function getProduct(handle: string): Promise<Product | null> {
   try {
-
-    
     const res = await medusaRequest({
       method: 'GET',
-      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price,+*variants.inventory_quantity,+*variants.preorder_variant`,
+      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price,+*variants.inventory_quantity,+*variants.preorder_variant,+*variants.thumbnail`,
       tags: ['products']
     });
 
@@ -545,9 +543,7 @@ export async function getProduct(handle: string): Promise<Product | null> {
       return null;
     }
 
-    const reshapedProduct = reshapeProduct(product);
-
-    return reshapedProduct;
+    return reshapeProduct(product);
   } catch (error) {
     console.error(`Error fetching product with handle ${handle}:`, error);
     return null;
@@ -635,8 +631,20 @@ export async function getMenu(menu: string): Promise<any[]> {
 export async function revalidate(req: NextRequest): Promise<NextResponse> {
   // We always need to respond with a 200 status code to Medusa,
   // otherwise it will continue to retry the request.
-  const collectionWebhooks = ['categories/create', 'categories/delete', 'categories/update'];
-  const productWebhooks = ['products/create', 'products/delete', 'products/update'];
+  const collectionWebhooks = [
+    'product-category.created', 
+    'product-category.updated', 
+    'product-category.deleted'
+  ];
+  const productWebhooks = [
+    'product.created', 
+    'product.updated', 
+    'product.deleted',
+    'product-variant.created',
+    'product-variant.updated',
+    'product-variant.deleted'
+  ];
+  
   const topic = (await headers()).get('x-medusa-topic') || 'unknown';
   const secret = req.nextUrl.searchParams.get('secret');
   const isCollectionUpdate = collectionWebhooks.includes(topic);
@@ -649,15 +657,25 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
 
   if (!isCollectionUpdate && !isProductUpdate) {
     // We don't need to revalidate anything for any other topics.
+    console.log(`Webhook received for unhandled topic: ${topic}`);
     return NextResponse.json({ status: 200 });
   }
 
   if (isCollectionUpdate) {
+    console.log(`Revalidating categories for topic: ${topic}`);
     revalidateTag(TAGS.categories);
+    // Revalidate all category pages
+    revalidatePath('/search/[slug]', 'page');
+    revalidatePath('/', 'page');
   }
 
   if (isProductUpdate) {
+    console.log(`Revalidating products for topic: ${topic}`);
     revalidateTag(TAGS.products);
+    // Revalidate all product pages and homepage
+    revalidatePath('/product/[slug]', 'page');
+    revalidatePath('/search/[slug]', 'page');
+    revalidatePath('/', 'page');
   }
 
   return NextResponse.json({ status: 200, revalidated: true, now: Date.now() });

@@ -22,28 +22,48 @@ const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '';
 export async function revalidate(req: NextRequest): Promise<NextResponse> {
   // We always need to respond with a 200 status code to Medusa,
   // otherwise it will continue to retry the request.
-  const collectionWebhooks = ['categories/create', 'categories/delete', 'categories/update'];
-  const productWebhooks = ['products/create', 'products/delete', 'products/update'];
+  const collectionWebhooks = [
+    'product_category.created', 
+    'product_category.updated', 
+    'product_category.deleted'
+  ];
+  const productWebhooks = [
+    'product.created', 
+    'product.updated', 
+    'product.deleted'
+  ];
+  const inventoryWebhooks = [
+    'inventory_item.created', 
+    'inventory_item.updated', 
+    'inventory_item.deleted', 
+    'inventory_level.updated', 
+    'inventory_level.deleted'
+  ];
+  
   const topic = (await headers()).get('x-medusa-topic') || 'unknown';
   const secret = req.nextUrl.searchParams.get('secret');
   const isCollectionUpdate = collectionWebhooks.includes(topic);
   const isProductUpdate = productWebhooks.includes(topic);
+  const isInventoryUpdate = inventoryWebhooks.includes(topic);
 
   if (!secret || secret !== process.env.MEDUSA_REVALIDATION_SECRET) {
     console.error('Invalid revalidation secret.');
     return NextResponse.json({ status: 200 });
   }
 
-  if (!isCollectionUpdate && !isProductUpdate) {
+  if (!isCollectionUpdate && !isProductUpdate && !isInventoryUpdate) {
     // We don't need to revalidate anything for any other topics.
+    console.log(`Webhook received for unhandled topic: ${topic}`);
     return NextResponse.json({ status: 200 });
   }
 
   if (isCollectionUpdate) {
+    console.log(`Revalidating categories for topic: ${topic}`);
     revalidateTag(TAGS.categories);
   }
 
-  if (isProductUpdate) {
+  if (isProductUpdate || isInventoryUpdate) {
+    console.log(`Revalidating products for topic: ${topic}`);
     revalidateTag(TAGS.products);
   }
 
@@ -72,11 +92,16 @@ export async function serverMedusaRequest({
       'x-publishable-api-key': MEDUSA_API_KEY
     },
     cache,
-    ...(tags && { next: { tags } })
+    ...(tags && { next: { tags, revalidate: 60 } })
   };
 
   if (path.includes('/carts')) {
     options.cache = 'no-cache';
+  }
+  
+  // Use revalidation for products and categories for real-time stock updates
+  if (path.includes('/products') || path.includes('/product-categories')) {
+    options.next = { ...options.next, revalidate: 60 };
   }
 
   if (payload) {

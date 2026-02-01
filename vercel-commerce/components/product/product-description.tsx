@@ -16,10 +16,12 @@ import {
 
 export function ProductDescription({ 
   product,
-  onCartUpdate
+  onCartUpdate,
+  onVariantChange
 }: { 
   product: Product;
   onCartUpdate: () => Promise<void>;
+  onVariantChange?: (variant: ProductVariant | undefined) => void;
 }) {
   // Track the selected variant - auto-select for single variant or no options
   const shouldAutoSelect = !hasMultipleOptions(product);
@@ -28,6 +30,12 @@ export function ProductDescription({
     : undefined;
   
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(initialVariant);
+
+  // Notify parent when variant changes
+  const handleVariantChange = (variant: ProductVariant | undefined) => {
+    setSelectedVariant(variant);
+    onVariantChange?.(variant);
+  };
 
   // Check if product is available for preorder
   const productHasPreorder = isProductPreorderAvailable(product);
@@ -75,7 +83,7 @@ export function ProductDescription({
       <VariantSelector 
         options={product.options} 
         variants={product.variants} 
-        onVariantChange={setSelectedVariant}
+        onVariantChange={handleVariantChange}
       />
 
       {/* Conditional Add to Cart / Pre-order button */}

@@ -4,8 +4,7 @@ import { Suspense } from 'react';
 
 import { GridTileImage } from 'components/grid/tile';
 import Footer from 'components/layout/footer';
-import { Gallery } from 'components/product/gallery';
-import { ProductDescriptionWrapper } from 'components/product/product-description-wrapper';
+import { ProductPageClient } from './product-page-client';
 import { HIDDEN_PRODUCT_TAG } from 'lib/constants';
 import { getProduct } from 'lib/medusa';
 import { Image } from 'lib/medusa/types';
@@ -15,6 +14,7 @@ import Reviews from '@/components/review/review';
 import SummaryReview from '@/components/review/summary-review';
 import { sdkReview } from "@/lib/sdk/sdk-review";
 import { Breadcrumb } from 'components/product/breadcrumb';
+// import { ProductDetailsImages } from 'components/product/product-details-images';
 
 export const runtime = 'edge';
 
@@ -257,20 +257,16 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
               }))} />
             </div>
 
-            {/* Left column: Gallery */}
-            <div className="h-full w-full basis-full lg:basis-4/6">
-              <Gallery
-                images={product.images!.map((image: Image) => ({
-                  src: image.url,
-                  altText: image.altText,
-                }))}
-              />
-            </div>
-
-            {/* Right column: Product description */}
-            <div className="basis-full lg:basis-2/6">
-              <ProductDescriptionWrapper product={product} />
-            </div>
+            {/* Product Gallery and Description - Client Component */}
+            <ProductPageClient 
+              product={product}
+              allImages={product.images!.map((image: Image) => ({
+                src: image.url,
+                altText: image.altText,
+                  width: (image as any).width,
+                height: (image as any).height
+              }))}
+            />
 
             {/* Full width row: Product Features */}
             <div className="basis-full mt-8">
@@ -364,6 +360,18 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
                 </div>
               </div>
             </div>
+
+            {/* Product Details Images Section - Full width row */}
+            {/* <div className="basis-full mt-8">
+              <ProductDetailsImages 
+                images={[
+                  {
+                    src: 'http://localhost:9000/static/1769979764017-mad68%C3%A5%C2%A4%C2%96%C3%A7%C2%BD%C2%91%C3%A5%C2%95%C2%86%C3%A8%C2%AF%C2%A6%C3%A7%C2%BF%C2%BB%C3%A8%C2%AF%C2%91%C3%A6%C2%9C%C2%80%C3%A6%C2%96%C2%B0%C3%A7%C2%89%C2%880121.jpg',
+                    altText: 'Product Details'
+                  }
+                ]}
+              />
+            </div> */}
 
             {/* Full width row: Reviews & Summary */}
             <div className="basis-full mt-10">

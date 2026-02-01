@@ -24,12 +24,19 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
     );
   }
 
-  const nextSearchParams = new URLSearchParams(searchParams.toString());
+  // Helper function to create clean search params without 'handle'
+  const getCleanSearchParams = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('handle'); // Remove handle to prevent hydration mismatch
+    return params;
+  };
+
+  const nextSearchParams = getCleanSearchParams();
   const nextImageIndex = imageIndex + 1 < images.length ? imageIndex + 1 : 0;
   nextSearchParams.set('image', nextImageIndex.toString());
   const nextUrl = createUrl(pathname, nextSearchParams);
 
-  const previousSearchParams = new URLSearchParams(searchParams.toString());
+  const previousSearchParams = getCleanSearchParams();
   const previousImageIndex = imageIndex === 0 ? images.length - 1 : imageIndex - 1;
   previousSearchParams.set('image', previousImageIndex.toString());
   const previousUrl = createUrl(pathname, previousSearchParams);
@@ -56,6 +63,7 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
         <div className="mt-4 flex w-full justify-center">
           <div className="flex h-10 sm:h-12 items-center gap-4 rounded-full border border-neutral-200 bg-white px-4 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900">
             <Link
+              replace
               aria-label="Previous product image"
               href={previousUrl}
               className={buttonClassName}
@@ -65,6 +73,7 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
             </Link>
             <div className="h-6 sm:h-8 w-px bg-neutral-300 dark:bg-neutral-700"></div>
             <Link
+              replace
               aria-label="Next product image"
               href={nextUrl}
               className={buttonClassName}
@@ -80,7 +89,7 @@ export function Gallery({ images }: { images: { src: string; altText: string }[]
         <ul className="my-12 flex items-center justify-center gap-2 overflow-auto py-1 lg:mb-0">
           {images.map((image, index) => {
             const isActive = index === imageIndex;
-            const imageSearchParams = new URLSearchParams(searchParams.toString());
+            const imageSearchParams = getCleanSearchParams();
 
             imageSearchParams.set('image', index.toString());
 

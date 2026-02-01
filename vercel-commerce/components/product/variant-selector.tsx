@@ -80,6 +80,8 @@ export function VariantSelector({
 
           // Base option params on current params so we can preserve any other param state in the url.
           const optionSearchParams = new URLSearchParams(searchParams.toString());
+          // Remove handle to prevent hydration mismatch
+          optionSearchParams.delete('handle');
 
           // Update the option params using the current option to reflect how the url *would* change,
           // if the option was clicked.
@@ -111,6 +113,7 @@ export function VariantSelector({
           return isLink ? (
             <Link
               key={value}
+              replace
               href={optionUrl}
               scroll={false}
               aria-disabled={!isAvailableForSale}

@@ -28,6 +28,7 @@ export type MedusaProductVariant = ProductVariantDTO & {
   hs_code?: string | null;
   origin_country?: string | null;
   mid_code?: string | null;
+  thumbnail?: string | null;
   material?: string | null;
   weight?: number | null;
   length?: number | null;

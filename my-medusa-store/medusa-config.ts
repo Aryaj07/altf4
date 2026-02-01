@@ -30,6 +30,22 @@ module.exports = defineConfig({
         defaultReviewStatus: 'pending',
       },
     },
+    {
+      resolve: "@lambdacurry/medusa-webhooks",
+      options: {
+        subscriptions: [
+          "product.created",
+          "product.updated",
+          "product.deleted",
+          "product-category.created",
+          "product-category.updated",
+          "product-category.deleted",
+          "product-variant.created",
+          "product-variant.updated",
+          "product-variant.deleted"
+        ],
+      },
+    },
   ],
   modules: [
     {
