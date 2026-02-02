@@ -60,11 +60,16 @@ export default async function medusaRequest({
       'x-publishable-api-key': MEDUSA_PUBLISHABLE_API_KEY
     },
     cache,
-    ...(tags && { next: { tags } })
+    ...(tags && { next: { tags, revalidate: 60 } })
   };
 
   if (path.includes('/carts')) {
     options.cache = 'no-cache';
+  }
+  
+  // Ensure products and categories use time-based revalidation
+  if (path.includes('/products') || path.includes('/product-categories')) {
+    options.next = { ...options.next, revalidate: 60 };
   }
 
   if (payload) {

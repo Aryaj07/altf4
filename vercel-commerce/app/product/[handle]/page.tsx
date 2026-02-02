@@ -18,6 +18,8 @@ import { Breadcrumb } from 'components/product/breadcrumb';
 
 export const runtime = 'edge';
 
+export const revalidate = 60; // Revalidate every 60 seconds
+
 // Helper function to get review stats for structured data
 async function getReviewStats(productId: string): Promise<any | null> {
   try {

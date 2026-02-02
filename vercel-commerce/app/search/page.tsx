@@ -5,6 +5,8 @@ import { getProducts } from 'lib/medusa';
 
 export const runtime = 'edge';
 
+export const revalidate = 60; // Revalidate every 60 seconds
+
 export const metadata = {
   title: 'Search',
   description: 'Search for products in the store.'
