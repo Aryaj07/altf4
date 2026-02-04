@@ -1,6 +1,7 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils";
 import { Modules } from "@medusajs/framework/utils"
 import { REVIEW_MODULE } from "./src/modules/auto_mail";
+import { PRODUCT_DESCRIPTION_MODULE } from "./src/modules/product-description";
 loadEnv(process.env.NODE_ENV || "development", process.cwd());
 
 module.exports = defineConfig({
@@ -13,6 +14,9 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+      bodyParserOptions: {
+        sizeLimit: "10mb",
+      },
     },
     databaseDriverOptions: {
       ssl: false,
@@ -71,6 +75,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/preorder",
+    },
+    {
+      resolve: "./src/modules/product-description",
     },
     {
       resolve: "@medusajs/medusa/notification",

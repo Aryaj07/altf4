@@ -9,7 +9,10 @@ import ReviewService from "../modules/auto_mail/service"
 
 const compileReview = Handlebars.compile(reviewTemplate);
 
-export default async function myCustomJob(container: MedusaContainer) {
+// DISABLED: Review emails now collected via on-site button
+// To re-enable, uncomment the export below and the config at the bottom
+
+async function myCustomJob(container: MedusaContainer) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
   const notificationModuleService = container.resolve(Modules.NOTIFICATION);
@@ -115,7 +118,8 @@ export default async function myCustomJob(container: MedusaContainer) {
   }
 }
 
-export const config = {
-  name: "daily-product-report-and-review-trigger",
-  schedule: "0 0 * * *", // Every day at midnight
-};
+// Disabled - uncomment to re-enable review emails
+// export const config = {
+//   name: "daily-product-report-and-review-trigger",
+//   schedule: "0 0 * * *", // Every day at midnight
+// };

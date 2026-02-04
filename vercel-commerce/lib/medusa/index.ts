@@ -710,3 +710,23 @@ export async function getFeaturedProducts(): Promise<Product[]> {
     return [];
   }
 }
+
+export async function getProductDescriptionSections(productId: string): Promise<any[]> {
+  try {
+    const res = await medusaRequest({
+      method: 'GET',
+      path: `/product-description-sections?product_id=${productId}`,
+      tags: ['product-descriptions'],
+      cache: 'no-cache'
+    });
+
+    if (!res?.body?.sections || !Array.isArray(res.body.sections)) {
+      return [];
+    }
+
+    return res.body.sections;
+  } catch (error) {
+    console.error('Error fetching product description sections:', error);
+    return [];
+  }
+}

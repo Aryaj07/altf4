@@ -5,13 +5,15 @@ import { Suspense } from 'react';
 import { GridTileImage } from 'components/grid/tile';
 import Footer from 'components/layout/footer';
 import { ProductPageClient } from './product-page-client';
+import { ProductDetailsImages } from 'components/product/product-details-images';
+import { ProductTabs } from 'components/product/tabs/product-tabs';
 import { HIDDEN_PRODUCT_TAG } from 'lib/constants';
-import { getProduct } from 'lib/medusa';
+import { getProduct, getProductDescriptionSections } from 'lib/medusa';
 import { Image } from 'lib/medusa/types';
 import Link from 'next/link';
 import Reviews from '@/components/review/review';
-// import AddReview from '@/components/review/add-review';
 import SummaryReview from '@/components/review/summary-review';
+import { ProductReviewButton } from '@/components/review/product-review-button';
 import { sdkReview } from "@/lib/sdk/sdk-review";
 import { Breadcrumb } from 'components/product/breadcrumb';
 // import { ProductDetailsImages } from 'components/product/product-details-images';
@@ -118,6 +120,24 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
 
     // Fetch review stats for structured data
     const reviewStats = await getReviewStats(product.id!);
+    
+    // Fetch product description sections
+    const descriptionSections = await getProductDescriptionSections(product.id!);
+    
+    // Fetch review count
+    let reviewCount = 0;
+    try {
+      const reviewStatsForCount = await sdkReview.store.productReviews.listStats({
+        product_id: product.id!,
+        offset: 0,
+        limit: 1,
+      });
+      if (reviewStatsForCount && (reviewStatsForCount as any).product_review_stats?.[0]) {
+        reviewCount = (reviewStatsForCount as any).product_review_stats[0].review_count || 0;
+      }
+    } catch (err) {
+      console.error("Failed to fetch review count", err);
+    }
 
     // Build comprehensive Schema.org Product structured data
     const productJsonLd: any = {
@@ -363,38 +383,34 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
               </div>
             </div>
 
-            {/* Product Details Images Section - Full width row */}
-            {/* <div className="basis-full mt-8">
-              <ProductDetailsImages 
-                images={[
-                  {
-                    src: 'http://localhost:9000/static/1769979764017-mad68%C3%A5%C2%A4%C2%96%C3%A7%C2%BD%C2%91%C3%A5%C2%95%C2%86%C3%A8%C2%AF%C2%A6%C3%A7%C2%BF%C2%BB%C3%A8%C2%AF%C2%91%C3%A6%C2%9C%C2%80%C3%A6%C2%96%C2%B0%C3%A7%C2%89%C2%880121.jpg',
-                    altText: 'Product Details'
-                  }
-                ]}
+            {/* Tabbed Interface: Product Description & Reviews */}
+            <div className="basis-full mt-8">
+              <ProductTabs 
+                productId={product.id!}
+                descriptionSections={descriptionSections}
+                reviewCount={reviewCount}
+                reviewButton={<ProductReviewButton productId={product.id!} />}
+                reviewsContent={
+                  <div className="rounded-lg border border-neutral-200 bg-white p-4 sm:p-6 md:p-8 dark:border-neutral-800 dark:bg-black">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Customer Reviews</h2>
+
+                    <div className="flex flex-col gap-6 sm:gap-8">
+                      {/* Review summary */}
+                      <div className="w-full lg:w-auto">
+                        <SummaryReview productId={product.id!} />
+                      </div>
+
+                      {/* Divider on mobile */}
+                      <div className="border-t border-neutral-200 dark:border-neutral-800 lg:hidden"></div>
+
+                      {/* Individual reviews */}
+                      <div className="w-full">
+                        <Reviews productId={product.id!} />
+                      </div>
+                    </div>
+                  </div>
+                }
               />
-            </div> */}
-
-            {/* Full width row: Reviews & Summary */}
-            <div className="basis-full mt-10">
-              <div className="rounded-lg border border-neutral-200 bg-white p-4 sm:p-6 md:p-8 dark:border-neutral-800 dark:bg-black">
-                <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Customer Reviews</h2>
-
-                <div className="flex flex-col gap-6 sm:gap-8">
-                  {/* Review summary - full width on mobile, 1/3 on desktop */}
-                  <div className="w-full lg:w-auto">
-                    <SummaryReview productId={product.id!} />
-                  </div>
-
-                  {/* Divider on mobile */}
-                  <div className="border-t border-neutral-200 dark:border-neutral-800 lg:hidden"></div>
-
-                  {/* Individual reviews - full width on mobile, 2/3 on desktop */}
-                  <div className="w-full">
-                    <Reviews productId={product.id!} />
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

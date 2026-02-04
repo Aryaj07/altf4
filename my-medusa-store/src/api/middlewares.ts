@@ -4,6 +4,7 @@ import { UpsertPreorderVariantSchema } from "./admin/variants/[id]/preorders/rou
 import { PostInvoiceConfgSchema } from "./admin/invoice-config/route"
 import * as fs from "fs"
 import * as path from "path"
+import multer from "multer"
 
 export default defineMiddlewares({
   routes: [
@@ -20,7 +21,7 @@ export default defineMiddlewares({
       middlewares: [
         (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
           const filePath = decodeURIComponent(req.url.replace("/static/", ""))
-          const fullPath = path.join("/static", filePath)
+          const fullPath = path.join(process.cwd(), "static", filePath)
 
           if (fs.existsSync(fullPath)) {
             const fileContent = fs.readFileSync(fullPath)
@@ -37,7 +38,7 @@ export default defineMiddlewares({
             res.setHeader("Cache-Control", "public, max-age=31536000")
             res.send(fileContent)
           } else {
-            next()
+            res.status(404).json({ message: "File not found" })
           }
         }
       ]
@@ -48,6 +49,17 @@ export default defineMiddlewares({
       middlewares: [
         (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
           // Allow larger file uploads (configured in medusa-config.ts)
+          next()
+        }
+      ]
+    },
+    {
+      matcher: "/store/review-images",
+      method: "POST",
+      middlewares: [
+        multer({ storage: multer.memoryStorage() }).array('files', 4),
+        (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
+          console.log('Multer middleware executed, files:', req.files);
           next()
         }
       ]
