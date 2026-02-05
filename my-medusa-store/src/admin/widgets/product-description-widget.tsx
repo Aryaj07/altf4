@@ -257,9 +257,10 @@ const SectionForm = ({ productId, section, onClose, onSave }: any) => {
       }
 
       if (imageUrl) {
-        // The upload API returns URL without /static/ prefix, so we add it
+        // BACKEND_URL already includes /static/ in production
         const filename = imageUrl.split('/').pop();
-        const correctUrl = `http://localhost:9000/static/${filename}`;
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:9000/static';
+        const correctUrl = `${backendUrl}${backendUrl.endsWith('/') ? '' : '/'}${filename}`;
         setFormData(prev => ({ ...prev, image_url: correctUrl }));
       } else {
         throw new Error('No URL returned from upload');

@@ -72,7 +72,7 @@ export async function POST(
       const filePath = path.join(reviewsDir, filename);
       fs.writeFileSync(filePath, file.buffer);
       
-      const imageUrl = `${backendUrl}/static/reviews/${filename}`;
+      const imageUrl = `${backendUrl}reviews/${filename}`;
       uploadedUrls.push(imageUrl);
     }
     
