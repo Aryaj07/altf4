@@ -257,11 +257,17 @@ const SectionForm = ({ productId, section, onClose, onSave }: any) => {
       }
 
       if (imageUrl) {
-        // BACKEND_URL already includes /static/ in production
-        const filename = imageUrl.split('/').pop();
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:9000/static';
-        const correctUrl = `${backendUrl}${backendUrl.endsWith('/') ? '' : '/'}${filename}`;
-        setFormData(prev => ({ ...prev, image_url: correctUrl }));
+        // Check if URL already has full domain (from Medusa file service)
+        if (imageUrl.startsWith('http')) {
+          // Already a complete URL, use as-is
+          setFormData(prev => ({ ...prev, image_url: imageUrl }));
+        } else {
+          // Relative URL - construct full URL
+          const filename = imageUrl.replace(/^\//, ''); // Remove leading slash
+          const baseUrl = window.location.origin; // Use current admin domain
+          const correctUrl = `${baseUrl}/static/${filename}`;
+          setFormData(prev => ({ ...prev, image_url: correctUrl }));
+        }
       } else {
         throw new Error('No URL returned from upload');
       }
