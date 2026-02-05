@@ -57,9 +57,8 @@ export default defineMiddlewares({
       matcher: "/store/review-images",
       method: "POST",
       middlewares: [
-        multer({ storage: multer.memoryStorage() }).array('files', 4),
+        multer({ storage: multer.memoryStorage() }).array('files', 4) as any,
         (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
-          console.log('Multer middleware executed, files:', req.files);
           next()
         }
       ]

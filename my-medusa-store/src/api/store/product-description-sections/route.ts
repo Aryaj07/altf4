@@ -8,8 +8,8 @@ export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule");
-  const { product_id } = req.query;
+  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule") as any;
+  const { product_id } = req.query as any;
 
   if (!product_id) {
     return res.status(400).json({ message: "product_id is required" });

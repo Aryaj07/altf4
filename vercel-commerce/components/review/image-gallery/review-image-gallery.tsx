@@ -126,9 +126,9 @@ export function ReviewImageGallery({ images }: { images: ReviewImage[] }) {
             className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center p-8"
             onClick={(e) => e.stopPropagation()}
           >
-            {images[currentIndex] && (
+            {images[currentIndex] && images[currentIndex]?.url && (
               <Image
-                src={images[currentIndex].url}
+                src={images[currentIndex]!.url}
                 alt={`Review image ${currentIndex + 1}`}
                 width={1200}
                 height={1200}

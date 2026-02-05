@@ -8,8 +8,8 @@ export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule");
-  const { id } = req.params;
+  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule") as any;
+  const { id } = req.params as any;
 
   const section = await productDescriptionModuleService.retrieveProductDescriptionSection(id);
 
@@ -29,18 +29,19 @@ export async function POST(
   res: MedusaResponse
 ) {
   try {
-    const productDescriptionModuleService = req.scope.resolve("productDescriptionModule");
-    const { id } = req.params;
+    const productDescriptionModuleService = req.scope.resolve("productDescriptionModule") as any;
+    const { id } = req.params as any;
+    const body = req.body as any;
     
     // Only include fields that are present in the request body
     const updateData: any = {};
     
-    if (req.body.title !== undefined) updateData.title = req.body.title;
-    if (req.body.content !== undefined) updateData.content = req.body.content;
-    if (req.body.image_url !== undefined) updateData.image_url = req.body.image_url;
-    if (req.body.template !== undefined) updateData.template = req.body.template;
-    if (req.body.order !== undefined) updateData.order = req.body.order;
-    if (req.body.metadata !== undefined) updateData.metadata = req.body.metadata;
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.content !== undefined) updateData.content = body.content;
+    if (body.image_url !== undefined) updateData.image_url = body.image_url;
+    if (body.template !== undefined) updateData.template = body.template;
+    if (body.order !== undefined) updateData.order = body.order;
+    if (body.metadata !== undefined) updateData.metadata = body.metadata;
 
     const section = await productDescriptionModuleService.updateProductDescriptionSections(id, updateData);
 
@@ -62,8 +63,8 @@ export async function DELETE(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule");
-  const { id } = req.params;
+  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule") as any;
+  const { id } = req.params as any;
 
   await productDescriptionModuleService.deleteProductDescriptionSections(id);
 

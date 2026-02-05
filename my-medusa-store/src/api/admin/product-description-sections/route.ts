@@ -8,8 +8,8 @@ export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule");
-  const { product_id } = req.query;
+  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule") as any;
+  const { product_id } = req.query as any;
 
   const filters: any = {};
   if (product_id) {
@@ -34,9 +34,9 @@ export async function POST(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule");
+  const productDescriptionModuleService = req.scope.resolve("productDescriptionModule") as any;
   
-  const { product_id, title, content, image_url, template, order, metadata } = req.body;
+  const { product_id, title, content, image_url, template, order, metadata } = req.body as any;
 
   const section = await productDescriptionModuleService.createProductDescriptionSections({
     product_id,

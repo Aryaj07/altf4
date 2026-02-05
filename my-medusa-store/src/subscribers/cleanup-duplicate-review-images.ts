@@ -20,7 +20,7 @@ export default async function cleanupDuplicateReviewImages({
       entity: "product_review",
       fields: ["id", "images.*"],
       filters: {
-        id: event.data?.id || event.id,
+        id: (event as any).data?.id || (event as any).id,
       },
     });
 

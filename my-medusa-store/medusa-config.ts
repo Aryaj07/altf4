@@ -14,9 +14,6 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
-      bodyParserOptions: {
-        sizeLimit: "35mb", // Increased for high-definition images
-      },
     },
     databaseDriverOptions: {
       ssl: false,

@@ -72,7 +72,7 @@ export function ProductReviewButton({ productId }: { productId: string }) {
   }
 
   function handleWriteReview() {
-    if (purchasedItems.length > 0) {
+    if (purchasedItems.length > 0 && purchasedItems[0]) {
       setSelectedItem(purchasedItems[0]);
       setShowModal(true);
     }

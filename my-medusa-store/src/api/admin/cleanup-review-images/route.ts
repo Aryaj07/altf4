@@ -57,7 +57,7 @@ export async function POST(
       console.log(`Deleting: ${allDuplicateIds.join(', ')}`);
       
       // Get review module service
-      const reviewModuleService = req.scope.resolve("review");
+      const reviewModuleService = req.scope.resolve("review") as any;
       
       // Delete using the service
       await reviewModuleService.deleteProductReviewImage(allDuplicateIds);
