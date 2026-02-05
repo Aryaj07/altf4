@@ -5,7 +5,7 @@ import * as crypto from "crypto";
 
 /**
  * POST /store/review-images
- * Upload review images to /static/reviews directory
+ * Upload review images to configured static directory
  */
 export async function POST(
   req: MedusaRequest,
@@ -40,10 +40,17 @@ export async function POST(
       });
     }
 
-    // Create /static/reviews directory if it doesn't exist
-    const staticDir = path.join(process.cwd(), 'static');
+    // Use UPLOAD_DIR from env, or default to /static
+    const uploadDir = process.env.UPLOAD_DIR || '/static';
+    
+    // Determine static directory based on UPLOAD_DIR
+    const staticDir = uploadDir.startsWith('/') 
+      ? uploadDir  // Absolute path (production: /static)
+      : path.join(process.cwd(), uploadDir); // Relative path (development: ./static)
+    
     const reviewsDir = path.join(staticDir, 'reviews');
     
+    // Create directories if they don't exist
     if (!fs.existsSync(staticDir)) {
       fs.mkdirSync(staticDir, { recursive: true });
     }
