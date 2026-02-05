@@ -210,6 +210,69 @@ const SectionForm = ({ productId, section, onClose, onSave }: any) => {
     order: section?.order || 0,
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 30 * 1024 * 1024) {
+      alert('Image size must be less than 30MB');
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('files', file);
+
+      const response = await fetch('/admin/uploads', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      
+      // Handle different response formats
+      let imageUrl = null;
+      
+      if (data.uploads && data.uploads.length > 0) {
+        imageUrl = data.uploads[0].url;
+      } else if (data.files && data.files.length > 0) {
+        imageUrl = data.files[0].url;
+      } else if (typeof data.url === 'string') {
+        imageUrl = data.url;
+      }
+
+      if (imageUrl) {
+        // The upload API returns URL without /static/ prefix, so we add it
+        const filename = imageUrl.split('/').pop();
+        const correctUrl = `http://localhost:9000/static/${filename}`;
+        setFormData(prev => ({ ...prev, image_url: correctUrl }));
+      } else {
+        throw new Error('No URL returned from upload');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+      // Reset file input
+      e.target.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,42 +368,56 @@ const SectionForm = ({ productId, section, onClose, onSave }: any) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Image URL</label>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={formData.image_url}
-              onChange={(e) =>
-                setFormData({ ...formData, image_url: e.target.value })
-              }
-              placeholder="http://localhost:9000/uploads/image.jpg"
-              className="flex-1"
-            />
-            {formData.image_url && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setFormData({ ...formData, image_url: "" })}
-              >
-                <Trash className="text-ui-fg-error" /> Remove
-              </Button>
-            )}
-          </div>
+          <label className="block text-sm font-medium mb-2">Image</label>
+          
+          {/* Image Preview */}
           {formData.image_url && (
-            <div className="mt-2 border rounded p-2">
+            <div className="mb-3 relative">
               <img
                 src={formData.image_url}
                 alt="Preview"
-                className="max-h-32 object-contain"
+                className="max-h-48 w-auto object-contain border rounded p-2"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
+              <Button
+                type="button"
+                variant="secondary"
+                size="small"
+                onClick={() => setFormData({ ...formData, image_url: "" })}
+                className="mt-2"
+              >
+                <Trash className="text-ui-fg-error" /> Remove Image
+              </Button>
             </div>
           )}
-          <p className="text-xs text-ui-fg-subtle mt-1">
-            Upload image first via Products → Media, then paste the URL here
-          </p>
+          
+          {/* Upload Button */}
+          {!formData.image_url && (
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="description-image-upload"
+              />
+              <label htmlFor="description-image-upload">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={uploadingImage}
+                  onClick={() => document.getElementById('description-image-upload')?.click()}
+                >
+                  {uploadingImage ? "Uploading..." : "Upload Image"}
+                </Button>
+              </label>
+              <p className="text-xs text-ui-fg-subtle mt-2">
+                JPG, PNG, GIF, or WebP. Max 30MB.
+              </p>
+            </div>
+          )}
         </div>
 
         <div>

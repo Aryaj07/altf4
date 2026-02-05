@@ -15,7 +15,7 @@ module.exports = defineConfig({
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
       bodyParserOptions: {
-        sizeLimit: "10mb",
+        sizeLimit: "35mb", // Increased for high-definition images
       },
     },
     databaseDriverOptions: {
