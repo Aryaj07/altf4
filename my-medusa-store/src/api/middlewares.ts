@@ -21,7 +21,14 @@ export default defineMiddlewares({
       middlewares: [
         (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
           const filePath = decodeURIComponent(req.url.replace("/static/", ""))
-          const fullPath = path.join(process.cwd(), "static", filePath)
+          
+          // Use UPLOAD_DIR from env, or default to /static
+          const uploadDir = process.env.UPLOAD_DIR || '/static';
+          const staticDir = uploadDir.startsWith('/') 
+            ? uploadDir  // Absolute path (production: /static)
+            : path.join(process.cwd(), uploadDir); // Relative path (development: ./static)
+          
+          const fullPath = path.join(staticDir, filePath)
 
           if (fs.existsSync(fullPath)) {
             const fileContent = fs.readFileSync(fullPath)
