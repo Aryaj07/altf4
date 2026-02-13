@@ -42,6 +42,17 @@ export type MedusaProductVariant = ProductVariantDTO & {
   preorder_variant?: PreorderVariant;
 }
 
+// Medusa Store Collection (from /store/collections endpoint)
+export type MedusaStoreCollection = {
+  id: string;
+  title: string;
+  handle: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
 export type MedusaProductCollection = {
   name: any;
   description: string | undefined;

@@ -36,6 +36,7 @@
     "@medusajs/ui": "^4.0.29",
     "@medusajs/utils": "2.12.1",
     "@medusajs/workflows-sdk": "^2.12.1",
+    "algoliasearch": "^5.48.1",
     "handlebars": "^4.7.8",
     "medusa-plugin-razorpay-v2": "^0.1.2",
     "multer": "^2.0.2",

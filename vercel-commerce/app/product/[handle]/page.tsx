@@ -5,20 +5,20 @@ import { Suspense } from 'react';
 import { GridTileImage } from 'components/grid/tile';
 import Footer from 'components/layout/footer';
 import { ProductPageClient } from './product-page-client';
-import { ProductDetailsImages } from 'components/product/product-details-images';
+// import { ProductDetailsImages } from 'components/product/product-details-images';
 import { ProductTabs } from 'components/product/tabs/product-tabs';
 import { HIDDEN_PRODUCT_TAG } from 'lib/constants';
-import { getProduct, getProductDescriptionSections } from 'lib/medusa';
-import { Image } from 'lib/medusa/types';
+import medusaRequest, { getProduct, getProductDescriptionSections } from 'lib/medusa';
+import { Image, MedusaProduct, Product } from 'lib/medusa/types';
 import Link from 'next/link';
 import Reviews from '@/components/review/review';
 import SummaryReview from '@/components/review/summary-review';
 import { ProductReviewButton } from '@/components/review/product-review-button';
 import { sdkReview } from "@/lib/sdk/sdk-review";
 import { Breadcrumb } from 'components/product/breadcrumb';
+import { hasAnyPreorderVariant } from 'lib/preorder-utils';
+import { reshapeProduct } from 'lib/medusa/utils';
 // import { ProductDetailsImages } from 'components/product/product-details-images';
-
-export const runtime = 'edge';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -417,7 +417,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
           {/* Related Products */}
           <div className="mt-12">
             <Suspense>
-              <RelatedProducts id={product.id!} />
+              <RelatedProducts id={product.id!} product={product} />
             </Suspense>
           </div>
         </div>
@@ -434,31 +434,116 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
   }
 }
 
-// eslint-disable-next-line no-unused-vars
-async function RelatedProducts({ id }: { id: string }) {
-  // const relatedProducts = await getProductRecommendations(id);
-  const relatedProducts: any[] = [];
+async function RelatedProducts({ id, product }: { id: string; product: Product }) {
+  let relatedProducts: Product[] = [];
+
+  try {
+    // Get all active/public categories once (reused across strategies)
+    const catRes = await medusaRequest({
+      method: 'GET',
+      path: '/product-categories',
+      tags: ['categories']
+    });
+    const activeCategories = (catRes?.body?.product_categories || []).filter(
+      (c: any) => !c.handle?.startsWith('hidden') && c.is_active !== false && c.is_internal !== true
+    );
+    const activeCategoryIds: string[] = activeCategories.map((c: any) => c.id);
+
+    // Get current product's category IDs
+    const productCategoryIds: string[] = ((product as any).categories || [])
+      .map((c: any) => c.id)
+      .filter(Boolean);
+
+    // Strategy 1: Same collection (e.g. "Hall Effect Keyboards")
+    const collectionId = (product as any).collection_id;
+    if (collectionId) {
+      const res = await medusaRequest({
+        method: 'GET',
+        path: `/products?collection_id[]=${collectionId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+        tags: ['products']
+      });
+      if (res?.body?.products) {
+        relatedProducts = res.body.products
+          .filter((p: MedusaProduct) => p.id !== id)
+          .map((p: MedusaProduct) => reshapeProduct(p));
+      }
+    }
+
+    // Strategy 2: Same category (e.g. Mouse → other mice)
+    if (relatedProducts.length < 5) {
+      for (const catId of productCategoryIds) {
+        if (!activeCategoryIds.includes(catId)) continue;
+        const res = await medusaRequest({
+          method: 'GET',
+          path: `/products?category_id[]=${catId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+          tags: ['products']
+        });
+        if (res?.body?.products) {
+          const existingIds = new Set([id, ...relatedProducts.map(p => p.id)]);
+          const categoryProducts = res.body.products
+            .filter((p: MedusaProduct) => !existingIds.has(p.id))
+            .map((p: MedusaProduct) => reshapeProduct(p));
+          relatedProducts = [...relatedProducts, ...categoryProducts];
+        }
+        if (relatedProducts.length >= 5) break;
+      }
+    }
+
+    // Strategy 3: Complementary products from OTHER active categories
+    // e.g. Mouse page → show Skates, Keyboards (cross-sell)
+    if (relatedProducts.length < 5 && activeCategoryIds.length > 0) {
+      const otherCategoryIds = activeCategoryIds.filter(cid => !productCategoryIds.includes(cid));
+      if (otherCategoryIds.length > 0) {
+        const categoryFilter = otherCategoryIds.map(cid => `category_id[]=${cid}`).join('&');
+        const res = await medusaRequest({
+          method: 'GET',
+          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+          tags: ['products']
+        });
+        if (res?.body?.products) {
+          const existingIds = new Set([id, ...relatedProducts.map(p => p.id)]);
+          const crossSellProducts = res.body.products
+            .filter((p: MedusaProduct) => !existingIds.has(p.id))
+            .map((p: MedusaProduct) => reshapeProduct(p));
+          relatedProducts = [...relatedProducts, ...crossSellProducts];
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching related products:', error);
+    return null;
+  }
+
+  // Limit to 5 products
+  relatedProducts = relatedProducts.slice(0, 5);
 
   if (!relatedProducts.length) return null;
+
+  // Fetch ratings
+  const { getProductRatings } = await import('lib/review-utils');
+  const productIds = relatedProducts.map(p => p.id).filter(Boolean) as string[];
+  const ratings = await getProductRatings(productIds);
 
   return (
     <div className="py-8">
       <h2 className="mb-4 text-2xl font-bold">Related Products</h2>
       <ul className="flex w-full gap-4 overflow-x-auto pt-1">
-        {relatedProducts.map((product) => (
+        {relatedProducts.map((rp) => (
           <li
-            key={product.handle}
+            key={rp.handle}
             className="aspect-square w-full flex-none min-[475px]:w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5"
           >
-            <Link className="relative h-full w-full" href={`/product/${product.handle}`}>
+            <Link className="relative h-full w-full" href={`/product/${rp.handle}`}>
               <GridTileImage
-                alt={product.title}
+                alt={rp.title}
                 label={{
-                  title: product.title,
-                  amount: product.priceRange.maxVariantPrice.amount,
-                  currencyCode: product.priceRange.maxVariantPrice.currencyCode
+                  title: rp.title,
+                  amount: rp.priceRange.maxVariantPrice.amount,
+                  currencyCode: rp.priceRange.maxVariantPrice.currencyCode,
+                  isPreorder: hasAnyPreorderVariant(rp)
                 }}
-                src={product.featuredImage?.url}
+                rating={rp.id && ratings[rp.id] ? ratings[rp.id] : null}
+                src={rp.featuredImage?.url}
                 fill
                 sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, (min-width: 475px) 50vw, 100vw"
               />

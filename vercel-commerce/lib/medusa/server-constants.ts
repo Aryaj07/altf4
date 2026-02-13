@@ -1,6 +1,7 @@
 export const TAGS = {
   products: 'products',
-  categories: 'categories'
+  categories: 'categories',
+  collections: 'collections'
 } as const;
 
 export const ENDPOINT = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API;

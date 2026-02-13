@@ -7,6 +7,7 @@ export function GridTileImage({
   isInteractive = true,
   active,
   label,
+  rating,
   ...props
 }: {
   isInteractive?: boolean;
@@ -18,6 +19,10 @@ export function GridTileImage({
     position?: 'bottom' | 'center';
     isPreorder?: boolean;
   };
+  rating?: {
+    average: number;
+    count: number;
+  } | null;
 } & React.ComponentProps<typeof Image>) {
   return (
     <div
@@ -31,7 +36,6 @@ export function GridTileImage({
       )}
     >
       {props.src ? (
-        // eslint-disable-next-line jsx-a11y/alt-text -- `alt` is inherited from `props`, which is being enforced with TypeScript
         <Image
           className={clsx('relative h-full w-full object-contain', {
             'transition duration-300 ease-in-out hover:scale-105': isInteractive
@@ -44,6 +48,27 @@ export function GridTileImage({
           <span className="rounded-full bg-purple-600 px-3 py-1.5 text-xs text-white shadow-lg" style={{ fontFamily: 'Inter-Bold, Inter, sans-serif', fontWeight: 600 }}>
             Pre-Order
           </span>
+        </div>
+      )}
+      {/* Star rating badge */}
+      {rating && rating.count > 0 && (
+        <div className="absolute top-4 right-4">
+          <div className="flex items-center gap-1 rounded-full bg-white/80 px-2 py-1 text-xs font-semibold text-black backdrop-blur-md dark:bg-black/70 dark:text-white">
+            <svg
+              viewBox="0 0 20 20"
+              width="14"
+              height="14"
+              aria-hidden="true"
+              className="text-yellow-500"
+            >
+              <path
+                fill="currentColor"
+                d="M10 15.27l-5.18 3.04 1.64-5.64L1 7.64l5.9-.5L10 2l3.1 5.14 5.9.5-5.46 4.03 1.64 5.64L10 15.27z"
+              />
+            </svg>
+            <span>{rating.average.toFixed(1)}</span>
+            <span className="text-neutral-500 dark:text-neutral-400">({rating.count})</span>
+          </div>
         </div>
       )}
       {label ? (

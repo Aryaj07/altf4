@@ -2,8 +2,7 @@ import Grid from 'components/grid';
 import ProductGridItems from 'components/layout/product-grid-items';
 import { defaultSort, sorting } from 'lib/constants';
 import { getProducts } from 'lib/medusa';
-
-export const runtime = 'edge';
+import { getProductRatings } from 'lib/review-utils';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -24,6 +23,10 @@ export default async function SearchPage({
   const products = await getProducts({ sortKey, reverse, query: searchValue });
   const resultsText = products.length > 1 ? 'results' : 'result';
 
+  // Fetch ratings for all products in parallel
+  const productIds = products.map((p) => p.id).filter(Boolean) as string[];
+  const ratings = await getProductRatings(productIds);
+
   return (
     <>
       {searchValue ? (
@@ -36,7 +39,7 @@ export default async function SearchPage({
       ) : null}
       {products.length > 0 ? (
         <Grid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <ProductGridItems products={products} />
+          <ProductGridItems products={products} ratings={ratings} />
         </Grid>
       ) : null}
     </>

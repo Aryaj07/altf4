@@ -6,7 +6,7 @@ import { Menu } from 'lib/medusa/types';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import MobileMenu from './mobile-menu';
-import Search from './search';
+import AlgoliaSearch from './algolia-search';
 import AccountButton from 'components/account/account-button';
 const { SITE_NAME } = process.env;
 
@@ -46,7 +46,7 @@ export default async function Navbar() {
           ) : null}
         </div>
         <div className="hidden justify-center md:flex md:w-1/3">
-          <Search />
+          <AlgoliaSearch />
         </div>
         <div className="flex justify-end md:w-1/3 gap-4">
           <AccountButton />

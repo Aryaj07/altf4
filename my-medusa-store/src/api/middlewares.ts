@@ -1,6 +1,8 @@
 import { defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http"
 import type { MedusaNextFunction, MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { UpsertPreorderVariantSchema } from "./admin/variants/[id]/preorders/route"
+import { SearchSchema } from "./store/products/search/route"
+import { RecommendSchema } from "./store/products/recommendations/route"
 import { PostInvoiceConfgSchema } from "./admin/invoice-config/route"
 import * as fs from "fs"
 import * as path from "path"
@@ -76,6 +78,20 @@ export default defineMiddlewares({
       middlewares: [
         validateAndTransformBody(UpsertPreorderVariantSchema as any)
       ]
+    },
+    {
+      matcher: "/store/products/search",
+      methods: ["POST"],
+      middlewares: [
+        validateAndTransformBody(SearchSchema as any),
+      ],
+    },
+    {
+      matcher: "/store/products/recommendations",
+      methods: ["POST"],
+      middlewares: [
+        validateAndTransformBody(RecommendSchema as any),
+      ],
     },
     // {
     //   matcher: "/admin/variants/:id/preorders",

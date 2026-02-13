@@ -2,9 +2,16 @@ import Grid from 'components/grid';
 import { GridTileImage } from 'components/grid/tile';
 import { Product } from 'lib/medusa/types';
 import { hasAnyPreorderVariant } from 'lib/preorder-utils';
+import type { ProductRatingsMap } from 'lib/review-utils';
 import Link from 'next/link';
 
-export default function ProductGridItems({ products }: { products: Product[] }) {
+export default function ProductGridItems({ 
+  products,
+  ratings 
+}: { 
+  products: Product[];
+  ratings?: ProductRatingsMap;
+}) {
   return (
     <>
       {products.map((product) => (
@@ -18,6 +25,7 @@ export default function ProductGridItems({ products }: { products: Product[] }) 
                 currencyCode: product.priceRange.maxVariantPrice.currencyCode,
                 isPreorder: hasAnyPreorderVariant(product)
               }}
+              rating={product.id && ratings?.[product.id] ? ratings[product.id] : null}
               src={product.featuredImage?.url}
               fill
               sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"

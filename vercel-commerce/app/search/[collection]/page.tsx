@@ -5,8 +5,9 @@ import { notFound } from 'next/navigation';
 import Grid from 'components/grid';
 import ProductGridItems from 'components/layout/product-grid-items';
 import { defaultSort, sorting } from 'lib/constants';
+import { getProductRatings } from 'lib/review-utils';
 
-export const runtime = 'edge';
+
 
 export async function generateMetadata({
   params
@@ -56,6 +57,10 @@ export default async function CategoryPage({
   const { sort } = resolvedSearchParams as { [key: string]: string };
   const { sortKey, reverse } = sorting.find((item) => item.slug === sort) || defaultSort;
   const products = await getCategoryProducts(collection, reverse, sortKey);
+
+  // Fetch ratings for all products in parallel
+  const productIds = products.map((p) => p.id).filter(Boolean) as string[];
+  const ratings = await getProductRatings(productIds);
   
   return (
     <section>
@@ -63,7 +68,7 @@ export default async function CategoryPage({
         <p className="py-3 text-lg">{`No products found in this collection`}</p>
       ) : (
         <Grid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <ProductGridItems products={products} />
+          <ProductGridItems products={products} ratings={ratings} />
         </Grid>
       )}
     </section>

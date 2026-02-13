@@ -11,6 +11,7 @@ import {
   ProductCategory,
   ProductCollection
 } from './types';
+import type { MedusaStoreCollection } from './types';
 import { reshapeProduct, reshapeCategory } from './utils';
 import { isMedusaError } from '../type-guards';
 import { TAGS } from './server-constants';
@@ -25,7 +26,10 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
   const collectionWebhooks = [
     'product_category.created', 
     'product_category.updated', 
-    'product_category.deleted'
+    'product_category.deleted',
+    'product-collection.created',
+    'product-collection.updated',
+    'product-collection.deleted'
   ];
   const productWebhooks = [
     'product.created', 
@@ -58,8 +62,9 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
   }
 
   if (isCollectionUpdate) {
-    console.log(`Revalidating categories for topic: ${topic}`);
+    console.log(`Revalidating categories/collections for topic: ${topic}`);
     revalidateTag(TAGS.categories);
+    revalidateTag(TAGS.collections);
   }
 
   if (isProductUpdate || isInventoryUpdate) {
@@ -321,6 +326,80 @@ export async function getServerCategory(handle: string): Promise<ProductCollecti
     return reshapeCategory(res.body.product_categories[0]);
   } catch (error) {
     console.error(`Error fetching category for handle ${handle}:`, error);
+    return undefined;
+  }
+}
+
+// ============ COLLECTIONS (separate from Categories) ============
+
+export async function getServerCollections(): Promise<MedusaStoreCollection[]> {
+  try {
+    const res = await serverMedusaRequest({
+      method: 'GET',
+      path: '/collections',
+      tags: ['collections']
+    });
+
+    if (!res?.body?.collections) {
+      console.warn('No collections found in response');
+      return [];
+    }
+
+    return res.body.collections;
+  } catch (error) {
+    console.error('Error fetching collections:', error);
+    return [];
+  }
+}
+
+export async function getServerCollectionProducts(
+  collectionId: string
+): Promise<Product[]> {
+  try {
+    const regionRes = await serverMedusaRequest({
+      method: 'GET',
+      path: '/regions',
+      tags: ['regions']
+    });
+    const regionId = regionRes?.body?.regions?.[0]?.id;
+
+    let path = `/products?collection_id[]=${collectionId}&limit=100&fields=+*variants.prices,+*variants.preorder_variant`;
+    if (regionId) {
+      path += `&region_id=${regionId}`;
+    }
+
+    const res = await serverMedusaRequest({
+      method: 'GET',
+      path,
+      tags: ['products']
+    });
+
+    if (!res?.body?.products) return [];
+
+    return res.body.products.map((p: MedusaProduct) => reshapeProduct(p));
+  } catch (error) {
+    console.error(`Error fetching products for collection ${collectionId}:`, error);
+    return [];
+  }
+}
+
+export async function getServerCollectionByHandle(
+  handle: string
+): Promise<MedusaStoreCollection | undefined> {
+  try {
+    const res = await serverMedusaRequest({
+      method: 'GET',
+      path: `/collections?handle=${encodeURIComponent(handle)}`,
+      tags: ['collections']
+    });
+
+    if (!res?.body?.collections?.[0]) {
+      return undefined;
+    }
+
+    return res.body.collections[0];
+  } catch (error) {
+    console.error(`Error fetching collection by handle ${handle}:`, error);
     return undefined;
   }
 }

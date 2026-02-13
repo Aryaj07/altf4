@@ -1,9 +1,9 @@
-import { Carousel } from 'components/carousel';
+// import { Carousel } from 'components/carousel';
 import { ThreeItemGrid } from 'components/grid/three-items';
+import { CollectionShowcase } from 'components/homepage/collection-showcase';
+// import { TrustBar } from 'components/homepage/trust-bar';
 import Footer from 'components/layout/footer';
 import { Suspense } from 'react';
-
-export const runtime = 'edge';
 
 export const revalidate = 60; // 60 seconds - webhooks handle instant updates
 
@@ -36,8 +36,12 @@ export default async function HomePage() {
   return (
     <>
       <ThreeItemGrid />
+      {/* <TrustBar /> */}
       <Suspense>
-        <Carousel />
+        <CollectionShowcase />
+      </Suspense>
+      <Suspense>
+        {/* <Carousel /> */}
         <Suspense>
           <Footer />
         </Suspense>
