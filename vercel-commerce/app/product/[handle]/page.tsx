@@ -16,7 +16,7 @@ import SummaryReview from '@/components/review/summary-review';
 import { ProductReviewButton } from '@/components/review/product-review-button';
 import { sdkReview } from "@/lib/sdk/sdk-review";
 import { Breadcrumb } from 'components/product/breadcrumb';
-import { hasAnyPreorderVariant } from 'lib/preorder-utils';
+import { hasAnyPreorderVariant, isProductSoldOut } from 'lib/preorder-utils';
 import { reshapeProduct } from 'lib/medusa/utils';
 // import { ProductDetailsImages } from 'components/product/product-details-images';
 
@@ -459,7 +459,7 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
     if (collectionId) {
       const res = await medusaRequest({
         method: 'GET',
-        path: `/products?collection_id[]=${collectionId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+        path: `/products?collection_id[]=${collectionId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
         tags: ['products']
       });
       if (res?.body?.products) {
@@ -475,7 +475,7 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
         if (!activeCategoryIds.includes(catId)) continue;
         const res = await medusaRequest({
           method: 'GET',
-          path: `/products?category_id[]=${catId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+          path: `/products?category_id[]=${catId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
           tags: ['products']
         });
         if (res?.body?.products) {
@@ -497,7 +497,7 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
         const categoryFilter = otherCategoryIds.map(cid => `category_id[]=${cid}`).join('&');
         const res = await medusaRequest({
           method: 'GET',
-          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
           tags: ['products']
         });
         if (res?.body?.products) {
@@ -540,7 +540,8 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
                   title: rp.title,
                   amount: rp.priceRange.maxVariantPrice.amount,
                   currencyCode: rp.priceRange.maxVariantPrice.currencyCode,
-                  isPreorder: hasAnyPreorderVariant(rp)
+                  isPreorder: hasAnyPreorderVariant(rp),
+                  isSoldOut: isProductSoldOut(rp)
                 }}
                 rating={rp.id && ratings[rp.id] ? ratings[rp.id] : null}
                 src={rp.featuredImage?.url}

@@ -266,7 +266,7 @@ export async function getServerProducts({
     const regionId = regionRes?.body?.regions?.[0]?.id;
 
     // Construct the path with region_id
-    let path = `/products?limit=100&fields=+*variants.prices,+*variants.preorder_variant`;
+    let path = `/products?limit=100&fields=+*variants.prices,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`;
     if (regionId) {
       path += `&region_id=${regionId}`;
     }
@@ -363,7 +363,7 @@ export async function getServerCollectionProducts(
     });
     const regionId = regionRes?.body?.regions?.[0]?.id;
 
-    let path = `/products?collection_id[]=${collectionId}&limit=100&fields=+*variants.prices,+*variants.preorder_variant`;
+    let path = `/products?collection_id[]=${collectionId}&limit=100&fields=+*variants.prices,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`;
     if (regionId) {
       path += `&region_id=${regionId}`;
     }

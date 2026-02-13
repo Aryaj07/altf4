@@ -246,14 +246,20 @@ const reshapeImages = (images?: MedusaImage[], productTitle?: string): Image[] =
 };
 
 const reshapeProduct = (product: MedusaProduct): Product => {
-  const variant = product.variants?.[0];
-
   let amount = '0';
   let currencyCode = 'USD';
-  const calculated_price = (variant as any)?.calculated_price;
-  if (variant && calculated_price) {
-    currencyCode = calculated_price.currency_code.toUpperCase() ?? 'USD';
-    amount = convertToDecimal(calculated_price.calculated_amount, currencyCode).toString();
+
+  // Find the lowest price across all variants
+  let minAmount = Infinity;
+  for (const v of product.variants || []) {
+    const cp = (v as any)?.calculated_price;
+    if (cp?.calculated_amount != null && cp.calculated_amount < minAmount) {
+      minAmount = cp.calculated_amount;
+      currencyCode = cp.currency_code?.toUpperCase() ?? 'USD';
+    }
+  }
+  if (minAmount !== Infinity) {
+    amount = convertToDecimal(minAmount, currencyCode).toString();
   }
   const priceRange = {
     maxVariantPrice: {
@@ -271,7 +277,25 @@ const reshapeProduct = (product: MedusaProduct): Product => {
     url: product.thumbnail ?? '',
     altText: product.thumbnail ? `${product.title} - ${featuredImageFilename}` : ''
   };
-  const availableForSale = product.variants?.[0]?.purchasable || true;
+  // Determine product availability:
+  // A variant is available if:
+  //   1. It has preorder enabled → available (preorder)
+  //   2. It allows backorder → available
+  //   3. inventory_quantity > 0 → available (in stock)
+  //   4. inventory_quantity === 0 and manage_inventory === true → sold out
+  //   5. manage_inventory is false or undefined → available (not tracking)
+  const availableForSale = product.variants?.some((v) => {
+    const preorder = (v as any)?.preorder_variant;
+    // Preorder is only valid if status is enabled AND available_date is in the future
+    if (preorder?.status === 'enabled' && preorder.available_date) {
+      if (new Date(preorder.available_date) > new Date()) return true;
+    }
+    if ((v as any)?.allow_backorder === true) return true;
+    const qty = (v as any)?.inventory_quantity;
+    const managesInventory = (v as any)?.manage_inventory;
+    if (managesInventory === true) return typeof qty === 'number' && qty > 0;
+    return true;
+  }) ?? true;
   const images = reshapeImages(product.images, product.title);
 
   const variants = product.variants.map((variant) =>
@@ -571,17 +595,17 @@ export async function getProducts({
   if (query) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?q=${query}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+      path: `/products?q=${query}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
       tags: ['products']
     });
   } else if (categoryId) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
       tags: ['products']
     });
   } else {
-    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant`, tags: ['products'] });
+    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`, tags: ['products'] });
   }
 
   if (!res) {

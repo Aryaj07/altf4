@@ -18,6 +18,7 @@ export function GridTileImage({
     currencyCode: string;
     position?: 'bottom' | 'center';
     isPreorder?: boolean;
+    isSoldOut?: boolean;
   };
   rating?: {
     average: number;
@@ -43,14 +44,22 @@ export function GridTileImage({
           {...props}
         />
       ) : null}
-      {label?.isPreorder && (
+      {/* Status badges - top left */}
+      {label?.isPreorder && !label?.isSoldOut && (
         <div className="absolute top-4 left-4">
           <span className="rounded-full bg-purple-600 px-3 py-1.5 text-xs text-white shadow-lg" style={{ fontFamily: 'Inter-Bold, Inter, sans-serif', fontWeight: 600 }}>
             Pre-Order
           </span>
         </div>
       )}
-      {/* Star rating badge */}
+      {label?.isSoldOut && (
+        <div className="absolute top-4 left-4">
+          <span className="rounded-full bg-red-600 px-3 py-1.5 text-xs text-white shadow-lg" style={{ fontFamily: 'Inter-Bold, Inter, sans-serif', fontWeight: 600 }}>
+            Sold Out
+          </span>
+        </div>
+      )}
+      {/* Star rating badge - top right */}
       {rating && rating.count > 0 && (
         <div className="absolute top-4 right-4">
           <div className="flex items-center gap-1 rounded-full bg-white/80 px-2 py-1 text-xs font-semibold text-black backdrop-blur-md dark:bg-black/70 dark:text-white">

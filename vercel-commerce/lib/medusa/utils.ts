@@ -136,24 +136,23 @@ export const reshapeImages = (images?: MedusaImage[], productTitle?: string): Im
 export function reshapeProduct(product: MedusaProduct): Product {
   if (!product) return null as unknown as Product;
 
-  // Calculate max price across all variants
-  let maxAmount = 0;
+  // Calculate lowest price across all variants
+  let minAmount = Infinity;
   let currencyCode = 'EUR';
 
   try {
     for (const variant of product.variants || []) {
       const calculated_price = (variant as any)?.calculated_price;
-      if (calculated_price.calculated_amount > maxAmount) {
-        maxAmount = calculated_price.calculated_amount;
+      if (calculated_price?.calculated_amount != null && calculated_price.calculated_amount < minAmount) {
+        minAmount = calculated_price.calculated_amount;
         currencyCode = calculated_price.currency_code?.toUpperCase();
       }
     }
   } catch (error) {
-    console.error('Error calculating max price:', error);
+    console.error('Error calculating min price:', error);
   }
-  const amount = currencyCode
-    ? maxAmount.toString()
-    : (maxAmount).toString();
+  if (minAmount === Infinity) minAmount = 0;
+  const amount = minAmount.toString();
 
   // Reshape variants with proper price handling
   const variants = (product.variants || []).map((variant: MedusaProductVariant): ProductVariant => {
@@ -174,7 +173,16 @@ export function reshapeProduct(product: MedusaProduct): Product {
     
     return {
       ...variant,
-      availableForSale: variant.inventory_quantity > 0 || variant.allow_backorder,
+      availableForSale: (() => {
+        const preorder = (variant as any)?.preorder_variant;
+        // Preorder is only valid if status is enabled AND available_date is in the future
+        if (preorder?.status === 'enabled' && preorder.available_date) {
+          if (new Date(preorder.available_date) > new Date()) return true;
+        }
+        if (variant.allow_backorder) return true;
+        if (variant.manage_inventory === true) return variant.inventory_quantity > 0;
+        return true;
+      })(),
       selectedOptions: (variant.options || []).map((option) => ({
         name: option.option?.title || '',
         value: option.value || ''

@@ -1,7 +1,7 @@
 import { getServerCategories, getServerCategoryProducts } from 'lib/medusa/server';
 import type { Product } from 'lib/medusa/types';
 import { getProductRatings, type ProductRatingsMap } from 'lib/review-utils';
-import { hasAnyPreorderVariant } from 'lib/preorder-utils';
+import { hasAnyPreorderVariant, isProductSoldOut } from 'lib/preorder-utils';
 import RotatingThreeItemGrid from './rotating-three-items';
 
 function serializeProduct(p: Product) {
@@ -17,6 +17,7 @@ function serializeProduct(p: Product) {
       },
     },
     isPreorder: hasAnyPreorderVariant(p),
+    isSoldOut: isProductSoldOut(p),
   };
 }
 

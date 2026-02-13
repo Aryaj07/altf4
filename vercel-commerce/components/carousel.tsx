@@ -2,7 +2,7 @@ import { getServerCategories, getServerCategoryProducts } from 'lib/medusa/serve
 import { getProductRatings } from 'lib/review-utils';
 import Link from 'next/link';
 import { GridTileImage } from './grid/tile';
-import { hasAnyPreorderVariant } from 'lib/preorder-utils';
+import { hasAnyPreorderVariant, isProductSoldOut } from 'lib/preorder-utils';
 
 export async function Carousel() {
   try {
@@ -64,7 +64,8 @@ export async function Carousel() {
                       title: product.title,
                       amount,
                       currencyCode,
-                      isPreorder: hasAnyPreorderVariant(product)
+                      isPreorder: hasAnyPreorderVariant(product),
+                      isSoldOut: isProductSoldOut(product)
                     }}
                     rating={product.id && ratings[product.id] ? ratings[product.id] : null}
                     src={product.featuredImage?.url}

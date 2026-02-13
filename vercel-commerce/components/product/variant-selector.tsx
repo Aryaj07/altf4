@@ -3,10 +3,7 @@
 
 import clsx from 'clsx';
 import { ProductOption, ProductVariant, StoreProductVariantWithPreorder } from 'lib/medusa/types';
-import { createUrl } from 'lib/utils';
-import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { isPreorder as checkIsPreorder } from 'lib/medusa/utils';
 
 type Combination = {
@@ -14,16 +11,14 @@ type Combination = {
   availableForSale: boolean;
   inStock: boolean;
   isPreorder: boolean;
-  [key: string]: string | boolean; // ie. { color: 'Red', size: 'Large', ... }
+  [key: string]: string | boolean;
 };
 
-// Helper function to check if variant is in stock
 const isVariantInStock = (variant: ProductVariant): boolean => {
-  const stockQuantity = (variant as any)?.inventory_quantity;
-  return typeof stockQuantity === 'number' ? stockQuantity > 0 : true; // Default to true if no inventory data
+  const qty = (variant as any)?.inventory_quantity;
+  return typeof qty === 'number' ? qty > 0 : true;
 };
 
-// Helper function to check if variant is preorder
 const isVariantPreorder = (variant: ProductVariant): boolean => {
   return checkIsPreorder((variant as StoreProductVariantWithPreorder)?.preorder_variant);
 };
@@ -37,121 +32,111 @@ export function VariantSelector({
   variants: ProductVariant[];
   onVariantChange?: (variant: ProductVariant | undefined) => void;
 }) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [selected, setSelected] = useState<Record<string, string>>({});
+
   const hasNoOptionsOrJustOneOption =
     !options.length || (options.length === 1 && options[0]?.values.length === 1);
-
-  useEffect(() => {
-    if (!onVariantChange) return;
-
-    // Find the variant that matches all current search params
-    const currentVariant = variants.find((variant) =>
-      variant.selectedOptions.every(
-        (option) => option.value === searchParams.get(option.name.toLowerCase())
-      )
-    );
-
-    onVariantChange(currentVariant);
-  }, [searchParams, variants, onVariantChange]);
-
-  if (hasNoOptionsOrJustOneOption) {
-    return null;
-  }
 
   const combinations: Combination[] = variants.map((variant) => ({
     id: variant.id,
     availableForSale: variant.availableForSale,
     inStock: isVariantInStock(variant),
     isPreorder: isVariantPreorder(variant),
-    // Adds key / value pairs for each variant (ie. "color": "Black" and "size": 'M").
     ...variant.selectedOptions.reduce(
-      (accumulator, option) => ({ ...accumulator, [option.name.toLowerCase()]: option.value }),
+      (acc, opt) => ({ ...acc, [opt.name.toLowerCase()]: opt.value }),
       {}
     )
   }));
 
-  return options.map((option) => (
-    <dl className="mb-8" key={option.id}>
-      <dt className="mb-4 text-sm uppercase tracking-wide">{option.name}</dt>
-      <dd className="flex flex-wrap gap-3">
-        {option.values.map((value) => {
-          const optionNameLowerCase = option.name.toLowerCase();
+  useEffect(() => {
+    if (!onVariantChange) return;
 
-          // Base option params on current params so we can preserve any other param state in the url.
-          const optionSearchParams = new URLSearchParams(searchParams.toString());
-          // Remove handle to prevent hydration mismatch
-          optionSearchParams.delete('handle');
+    const selectedEntries = Object.entries(selected);
+    if (selectedEntries.length === 0) {
+      onVariantChange(undefined);
+      return;
+    }
 
-          // Update the option params using the current option to reflect how the url *would* change,
-          // if the option was clicked.
-          optionSearchParams.set(optionNameLowerCase, value);
-          const optionUrl = createUrl(pathname, optionSearchParams);
+    const matchingVariant = variants.find((variant) =>
+      variant.selectedOptions.every(
+        (opt) => selected[opt.name.toLowerCase()] === opt.value
+      )
+    );
 
-          // Check if this specific combination is available for sale AND in stock
-          const filtered = Array.from(optionSearchParams.entries()).filter(([key, value]) =>
-            options.find(
-              (option) => option.name.toLowerCase() === key && option.values.includes(value)
-            )
-          );
-          
-          const matchingCombination = combinations.find((combination) =>
-            filtered.every(
-              ([key, value]) => combination[key] === value && combination.availableForSale
-            )
-          );
+    onVariantChange(matchingVariant);
+  }, [selected, variants, onVariantChange]);
 
-          // Include stock status OR preorder status in availability check
-          const isAvailableForSale = matchingCombination && (matchingCombination.inStock || matchingCombination.isPreorder);
+  const handleSelect = useCallback((optionName: string, value: string) => {
+    setSelected((prev) => {
+      const key = optionName.toLowerCase();
+      if (prev[key] === value) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: value };
+    });
+  }, []);
 
-          // The option is active if it's in the url params.
-          const isActive = searchParams.get(optionNameLowerCase) === value;
+  if (hasNoOptionsOrJustOneOption) {
+    return null;
+  }
 
-          // You can't disable a link, so we need to render something that isn't clickable.
-          const isLink = isAvailableForSale;
-          
-          return isLink ? (
-            <Link
-              key={value}
-              replace
-              href={optionUrl}
-              scroll={false}
-              aria-disabled={!isAvailableForSale}
-              title={`${option.name} ${value}${!isAvailableForSale ? ' (Out of Stock)' : ''}`}
-              className={clsx(
-                'flex min-w-[48px] items-center justify-center rounded-full border bg-neutral-100 px-2 py-1 text-sm dark:border-neutral-800 dark:bg-neutral-900',
-                {
-                  'cursor-default ring-2 ring-blue-600': isActive,
-                  'ring-1 ring-transparent transition duration-300 ease-in-out hover:scale-110 hover:ring-blue-600':
-                    !isActive && isAvailableForSale,
-                  'relative z-10 cursor-not-allowed overflow-hidden bg-neutral-100 text-neutral-500 ring-1 ring-neutral-300 before:absolute before:inset-x-0 before:-z-10 before:h-px before:-rotate-45 before:bg-neutral-300 before:transition-transform dark:bg-neutral-900 dark:text-neutral-400 dark:ring-neutral-700 before:dark:bg-neutral-700':
-                    !isAvailableForSale
-                }
+  return (
+    <div className="space-y-6 mb-6">
+      {options.map((option) => {
+        const optionKey = option.name.toLowerCase();
+
+        return (
+          <fieldset key={option.id}>
+            <legend className="mb-3 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              {option.name}
+              {selected[optionKey] && (
+                <span className="ml-1.5 font-normal text-neutral-500 dark:text-neutral-400">
+                  — {selected[optionKey]}
+                </span>
               )}
-            >
-              {value}
-            </Link>
-          ) : (
-            <p
-              key={value}
-              aria-disabled={!isAvailableForSale}
-              title={`${option.name} ${value}${!isAvailableForSale ? ' (Out of Stock)' : ''}`}
-              className={clsx(
-                'flex min-w-[48px] items-center justify-center rounded-full border bg-neutral-100 px-2 py-1 text-sm dark:border-neutral-800 dark:bg-neutral-900',
-                {
-                  'cursor-default ring-2 ring-blue-600': isActive,
-                  'ring-1 ring-transparent transition duration-300 ease-in-out hover:scale-110 hover:ring-blue-600':
-                    !isActive && isAvailableForSale,
-                  'relative z-10 cursor-not-allowed overflow-hidden bg-neutral-100 text-neutral-500 ring-1 ring-neutral-300 before:absolute before:inset-x-0 before:-z-10 before:h-px before:-rotate-45 before:bg-neutral-300 before:transition-transform dark:bg-neutral-900 dark:text-neutral-400 dark:ring-neutral-700 before:dark:bg-neutral-700':
-                    !isAvailableForSale
-                }
-              )}
-            >
-              {value}
-            </p>
-          );
-        })}
-      </dd>
-    </dl>
-  ));
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {option.values.map((value) => {
+                const isActive = selected[optionKey] === value;
+
+                const anyVariantExists = combinations.some(
+                  (combo) => combo[optionKey] === value && combo.availableForSale && (combo.inStock || combo.isPreorder)
+                );
+
+                const disabled = !anyVariantExists;
+
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => !disabled && handleSelect(option.name, value)}
+                    title={`${option.name}: ${value}${disabled ? ' (Out of Stock)' : ''}`}
+                    className={clsx(
+                      'rounded-full border px-4 py-2 text-sm transition-all duration-150',
+                      {
+                        // Active
+                        'border-blue-600 bg-blue-600/10 text-blue-600 font-medium ring-1 ring-blue-600 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-400':
+                          isActive,
+                        // Available
+                        'border-neutral-300 text-neutral-700 hover:border-neutral-500 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500':
+                          !isActive && !disabled,
+                        // Disabled
+                        'relative cursor-not-allowed overflow-hidden border-neutral-200 text-neutral-400 before:absolute before:inset-0 before:m-auto before:h-px before:w-[calc(100%+10px)] before:-rotate-[18deg] before:bg-neutral-400 dark:border-neutral-800 dark:text-neutral-600 dark:before:bg-neutral-600':
+                          disabled,
+                      }
+                    )}
+                  >
+                    {value}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        );
+      })}
+    </div>
+  );
 }

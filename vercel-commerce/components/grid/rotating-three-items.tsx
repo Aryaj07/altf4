@@ -12,6 +12,7 @@ type SerializedProduct = {
   featuredImage: { url: string; altText?: string };
   priceRange: { maxVariantPrice: { amount: string; currencyCode: string } };
   isPreorder: boolean;
+  isSoldOut: boolean;
 };
 
 type ProductGroup = [SerializedProduct, SerializedProduct, SerializedProduct];
@@ -50,6 +51,7 @@ function GridItem({
             amount: item.priceRange.maxVariantPrice.amount,
             currencyCode: item.priceRange.maxVariantPrice.currencyCode,
             isPreorder: item.isPreorder,
+            isSoldOut: item.isSoldOut,
           }}
           rating={item.id && ratings?.[item.id] ? ratings[item.id] : null}
         />

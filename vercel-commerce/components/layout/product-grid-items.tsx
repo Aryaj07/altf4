@@ -1,7 +1,7 @@
 import Grid from 'components/grid';
 import { GridTileImage } from 'components/grid/tile';
 import { Product } from 'lib/medusa/types';
-import { hasAnyPreorderVariant } from 'lib/preorder-utils';
+import { hasAnyPreorderVariant, isProductSoldOut } from 'lib/preorder-utils';
 import type { ProductRatingsMap } from 'lib/review-utils';
 import Link from 'next/link';
 
@@ -23,7 +23,8 @@ export default function ProductGridItems({
                 title: product.title,
                 amount: product.priceRange.maxVariantPrice.amount,
                 currencyCode: product.priceRange.maxVariantPrice.currencyCode,
-                isPreorder: hasAnyPreorderVariant(product)
+                isPreorder: hasAnyPreorderVariant(product),
+                isSoldOut: isProductSoldOut(product)
               }}
               rating={product.id && ratings?.[product.id] ? ratings[product.id] : null}
               src={product.featuredImage?.url}

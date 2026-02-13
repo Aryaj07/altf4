@@ -73,6 +73,13 @@ export function hasMultipleOptions(product: Product): boolean {
 }
 
 /**
+ * Check if a product is truly sold out (not available AND not preorder)
+ */
+export function isProductSoldOut(product: Product): boolean {
+  return !product.availableForSale && !hasAnyPreorderVariant(product);
+}
+
+/**
  * Get the estimated arrival date for a preorder variant
  */
 export function getPreorderETA(variant: ProductVariant | undefined): Date | null {
