@@ -1,52 +1,29 @@
-import { GridTileImage } from 'components/grid/tile';
 import { getServerCategories, getServerCategoryProducts } from 'lib/medusa/server';
 import type { Product } from 'lib/medusa/types';
 import { getProductRatings, type ProductRatingsMap } from 'lib/review-utils';
-import Link from 'next/link';
 import { hasAnyPreorderVariant } from 'lib/preorder-utils';
+import RotatingThreeItemGrid from './rotating-three-items';
 
-function ThreeItemGridItem({
-  item,
-  size,
-  priority,
-  ratings
-}: {
-  item: Product;
-  size: 'full' | 'half';
-  priority?: boolean;
-  ratings?: ProductRatingsMap;
-}) {
-  return (
-    <div
-      className={size === 'full' ? 'md:col-span-4 md:row-span-2' : 'md:col-span-2 md:row-span-1'}
-    >
-      <Link className="relative block aspect-square h-full w-full" href={`/product/${item.handle}`}>
-        <GridTileImage
-          src={item.featuredImage.url}
-          fill
-          sizes={
-            size === 'full' ? '(min-width: 768px) 66vw, 100vw' : '(min-width: 768px) 33vw, 100vw'
-          }
-          priority={priority}
-          alt={item.title}
-          label={{
-            position: size === 'full' ? 'bottom' : 'bottom',
-            title: item.title as string,
-            amount: item.priceRange.maxVariantPrice.amount,
-            currencyCode: item.priceRange.maxVariantPrice.currencyCode,
-            isPreorder: hasAnyPreorderVariant(item)
-          }}
-          rating={item.id && ratings?.[item.id] ? ratings[item.id] : null}
-        />
-      </Link>
-    </div>
-  );
+function serializeProduct(p: Product) {
+  return {
+    id: p.id || '',
+    handle: p.handle || '',
+    title: p.title,
+    featuredImage: { url: p.featuredImage.url, altText: p.featuredImage.altText },
+    priceRange: {
+      maxVariantPrice: {
+        amount: p.priceRange.maxVariantPrice.amount,
+        currencyCode: p.priceRange.maxVariantPrice.currencyCode,
+      },
+    },
+    isPreorder: hasAnyPreorderVariant(p),
+  };
 }
 
 export async function ThreeItemGrid() {
   try {
     const categories = await getServerCategories();
-    
+
     if (!categories || categories.length === 0) {
       return null;
     }
@@ -57,18 +34,14 @@ export async function ThreeItemGrid() {
       return rankA - rankB;
     });
 
-    const productsFromRankedCategories: Product[] = [];
-    
+    // Fetch ALL products from each category
+    const categoryProducts: Product[][] = [];
+
     for (const category of sortedCategories) {
       try {
-        const categoryProducts = await getServerCategoryProducts(category.handle);
-        if (categoryProducts && categoryProducts.length > 0) {
-          if (categoryProducts[0]) {
-            productsFromRankedCategories.push(categoryProducts[0]);
-          }
-          if (productsFromRankedCategories.length === 3) {
-            break;
-          }
+        const products = await getServerCategoryProducts(category.handle);
+        if (products && products.length > 0) {
+          categoryProducts.push(products);
         }
       } catch (error) {
         console.error(`Error fetching products for category ${category.handle}:`, error);
@@ -76,24 +49,53 @@ export async function ThreeItemGrid() {
       }
     }
 
-    const [firstProduct, secondProduct, thirdProduct] = productsFromRankedCategories;
-
-    if (!firstProduct || !secondProduct || !thirdProduct) {
+    if (categoryProducts.length < 3) {
+      // Not enough categories, can't form a 3-item grid
       return null;
     }
 
-    // Fetch ratings for the 3 featured products
-    const productIds = [firstProduct, secondProduct, thirdProduct]
-      .map((p) => p.id)
-      .filter(Boolean) as string[];
-    const ratings = await getProductRatings(productIds);
+    // Build product groups: pick one product from each of the top 3 categories per group
+    // Rotate through all products in each category
+    const [cat1, cat2, cat3] = categoryProducts;
+    if (!cat1?.length || !cat2?.length || !cat3?.length) return null;
+
+    const maxGroups = Math.max(cat1.length, cat2.length, cat3.length);
+    const groups: [Product, Product, Product][] = [];
+
+    for (let i = 0; i < maxGroups; i++) {
+      groups.push([
+        cat1[i % cat1.length]!,
+        cat2[i % cat2.length]!,
+        cat3[i % cat3.length]!,
+      ]);
+    }
+
+    // Collect all unique product IDs for ratings
+    const allProductIds = new Set<string>();
+    groups.forEach(([a, b, c]) => {
+      if (a.id) allProductIds.add(a.id);
+      if (b.id) allProductIds.add(b.id);
+      if (c.id) allProductIds.add(c.id);
+    });
+
+    const ratings = await getProductRatings([...allProductIds]);
+
+    // Serialize products for client component
+    const serializedGroups = groups.map(
+      ([a, b, c]) =>
+        [serializeProduct(a), serializeProduct(b), serializeProduct(c)] as [
+          ReturnType<typeof serializeProduct>,
+          ReturnType<typeof serializeProduct>,
+          ReturnType<typeof serializeProduct>,
+        ]
+    );
 
     return (
-      <section className="mx-auto grid max-w-screen-2xl gap-4 px-4 pb-4 md:grid-cols-6 md:grid-rows-2 lg:max-h-[calc(100vh-200px)]">
-        <ThreeItemGridItem size="full" item={firstProduct} priority={true} ratings={ratings} />
-        <ThreeItemGridItem size="half" item={secondProduct} priority={true} ratings={ratings} />
-        <ThreeItemGridItem size="half" item={thirdProduct} ratings={ratings} />
-      </section>
+      <RotatingThreeItemGrid
+        productGroups={serializedGroups}
+        ratings={ratings}
+        intervalMs={5000}
+      />
     );
   } catch (error) {
     console.error('Error in ThreeItemGrid:', error);
