@@ -69,16 +69,28 @@ export default class AlgoliaModuleService {
 
   async getRecommendations(objectID: string, type: AlgoliaIndexType = "product") {
     const indexName = await this.getIndexName(type)
-    return await this.client.getRecommendations({
+    // Use the search API to find similar products based on the product's data
+    const sourceObj = await this.client.getObjects<Record<string, unknown>>({
+      requests: [{ indexName, objectID }],
+    })
+    const source = sourceObj.results[0]
+    if (!source) return { results: [{ hits: [] }] }
+
+    // Search for products with similar title/categories
+    const searchQuery = [source.title, ...(Array.isArray(source.categories) ? source.categories.map((c: any) => c.name) : [])]
+      .filter(Boolean)
+      .join(' ')
+
+    const results = await this.client.search({
       requests: [
         {
           indexName,
-          objectID,
-          model: "related-products",
-          threshold: 0,
-          maxRecommendations: 10,
+          query: searchQuery,
+          hitsPerPage: 10,
+          filters: `NOT objectID:${objectID}`,
         },
       ],
     })
+    return results
   }
 }
