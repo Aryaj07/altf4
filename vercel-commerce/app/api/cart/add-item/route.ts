@@ -27,15 +27,18 @@ export async function POST(req: Request) {
   }
 
   try {
-    await addToCart(cartId, { 
+    await addToCart(cartId!, { 
       variantId, 
       quantity: 1
     });
-    return NextResponse.json({ success: true });
+
+    // Fetch the updated cart to return fresh data
+    const updatedCart = await getCart(cartId!);
+
+    return NextResponse.json({ success: true, cart: updatedCart });
   } catch (e: any) {
     console.error(e);
     
-    // Extract meaningful error message from Medusa error
     let errorMessage = "Error adding item to cart";
     if (e?.message) {
       if (e.message.includes("must either contain only preorder variants")) {

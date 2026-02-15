@@ -5,34 +5,42 @@ import LoadingDots from 'components/loading-dots';
 
 import clsx from 'clsx';
 import type { CartItem } from 'lib/medusa/types';
-import { useTransition } from 'react';
+import { useState } from 'react';
 import { useCart } from './cart-context';
 
 export default function DeleteItemButton({ item }: { item: CartItem }) {
-  const { refreshCart } = useCart();
-  const [isPending, startTransition] = useTransition();
+  const { setCart } = useCart();
+  const [isPending, setIsPending] = useState(false);
+
+  const handleRemove = async () => {
+    setIsPending(true);
+    try {
+      const res = await fetch("/api/cart/remove-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lineId: item.id }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Remove item failed: ${text}`);
+      }
+
+      const data = await res.json();
+      if (data.cart) {
+        setCart(data.cart);
+      }
+    } catch (err) {
+      console.error('Error removing item:', err);
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
     <button
       aria-label="Remove cart item"
-      onClick={() => {
-        startTransition(async () => {
-          const res = await fetch("/api/cart/remove-item", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ lineId: item.id }),
-          });
-
-          if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`Remove item failed: ${text}`);
-          }
-
-          await refreshCart();
-        });
-      }}
+      onClick={handleRemove}
       disabled={isPending}
       className={clsx(
         'ease flex h-[17px] w-[17px] items-center justify-center rounded-full bg-neutral-500 transition-all duration-200',

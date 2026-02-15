@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { removeFromCart } from "lib/medusa";
+import { removeFromCart, getCart } from "lib/medusa";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -24,7 +24,10 @@ export async function POST(req: Request) {
 
     await removeFromCart(cartId, lineId);
 
-    return NextResponse.json({ success: true });
+    // Fetch fresh cart data after removal
+    const updatedCart = await getCart(cartId);
+
+    return NextResponse.json({ success: true, cart: updatedCart });
   } catch (e: any) {
     console.error("Remove item error:", e);
     return NextResponse.json(

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { updateCart } from "lib/medusa";
+import { updateCart, getCart } from "lib/medusa";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -21,7 +21,10 @@ export async function POST(req: Request) {
       quantity,
     });
 
-    return NextResponse.json({ success: true });
+    // Fetch fresh cart data after update
+    const updatedCart = await getCart(cartId);
+
+    return NextResponse.json({ success: true, cart: updatedCart });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

@@ -9,18 +9,7 @@ import { isPreorder as checkIsPreorder } from 'lib/medusa/utils';
 type Combination = {
   id: string;
   availableForSale: boolean;
-  inStock: boolean;
-  isPreorder: boolean;
   [key: string]: string | boolean;
-};
-
-const isVariantInStock = (variant: ProductVariant): boolean => {
-  const qty = (variant as any)?.inventory_quantity;
-  return typeof qty === 'number' ? qty > 0 : true;
-};
-
-const isVariantPreorder = (variant: ProductVariant): boolean => {
-  return checkIsPreorder((variant as StoreProductVariantWithPreorder)?.preorder_variant);
 };
 
 export function VariantSelector({
@@ -40,8 +29,6 @@ export function VariantSelector({
   const combinations: Combination[] = variants.map((variant) => ({
     id: variant.id,
     availableForSale: variant.availableForSale,
-    inStock: isVariantInStock(variant),
-    isPreorder: isVariantPreorder(variant),
     ...variant.selectedOptions.reduce(
       (acc, opt) => ({ ...acc, [opt.name.toLowerCase()]: opt.value }),
       {}
@@ -78,6 +65,26 @@ export function VariantSelector({
     });
   }, []);
 
+  // Check if a specific option value is available given the OTHER currently selected options
+  const isOptionValueAvailable = useCallback((optionKey: string, value: string) => {
+    // Build a test selection: all current selections EXCEPT the option group we're checking
+    const otherSelections = Object.entries(selected).filter(
+      ([k]) => k !== optionKey
+    );
+
+    // Find combinations that match this value AND all other selected options
+    const matchingCombinations = combinations.filter((combo) => {
+      // Must match the value we're checking
+      if (combo[optionKey] !== value) return false;
+      // Must match all other currently selected options
+      return otherSelections.every(([k, v]) => combo[k] === v);
+    });
+
+    // Available if at least one matching combination is available for sale
+    if (matchingCombinations.length === 0) return false;
+    return matchingCombinations.some((combo) => combo.availableForSale);
+  }, [selected, combinations]);
+
   if (hasNoOptionsOrJustOneOption) {
     return null;
   }
@@ -100,12 +107,8 @@ export function VariantSelector({
             <div className="flex flex-wrap gap-2">
               {option.values.map((value) => {
                 const isActive = selected[optionKey] === value;
-
-                const anyVariantExists = combinations.some(
-                  (combo) => combo[optionKey] === value && combo.availableForSale && (combo.inStock || combo.isPreorder)
-                );
-
-                const disabled = !anyVariantExists;
+                const available = isOptionValueAvailable(optionKey, value);
+                const disabled = !available;
 
                 return (
                   <button
@@ -113,7 +116,7 @@ export function VariantSelector({
                     type="button"
                     disabled={disabled}
                     onClick={() => !disabled && handleSelect(option.name, value)}
-                    title={`${option.name}: ${value}${disabled ? ' (Out of Stock)' : ''}`}
+                    title={`${option.name}: ${value}${disabled ? ' (Unavailable)' : ''}`}
                     className={clsx(
                       'rounded-full border px-4 py-2 text-sm transition-all duration-150',
                       {

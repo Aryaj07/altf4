@@ -14,9 +14,12 @@ import React, {
 interface CartContextType {
   cart: any;
   refreshCart: () => Promise<void>;
+  addItemAndRefresh: () => Promise<void>;
   setCart: Dispatch<SetStateAction<any>>;
   suppressAutoOpen: boolean;
   setSuppressAutoOpen: Dispatch<SetStateAction<boolean>>;
+  itemJustAdded: boolean;
+  setItemJustAdded: Dispatch<SetStateAction<boolean>>;
   paymentProviderId?: string;
   setPaymentProviderId?: Dispatch<SetStateAction<string | undefined>>;
   paymentStepLocked?: boolean;
@@ -26,9 +29,12 @@ interface CartContextType {
 const CartContext = createContext<CartContextType>({
   cart: undefined,
   refreshCart: async () => {},
+  addItemAndRefresh: async () => {},
   setCart: () => {},
   suppressAutoOpen: false,
   setSuppressAutoOpen: () => {},
+  itemJustAdded: false,
+  setItemJustAdded: () => {},
   paymentProviderId: undefined,
   setPaymentProviderId: () => {},
   paymentStepLocked: false,
@@ -42,6 +48,7 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
   const [cart, setCart] = useState<any>();
   const [suppressAutoOpen, setSuppressAutoOpen] = useState<boolean>(false);
+  const [itemJustAdded, setItemJustAdded] = useState<boolean>(false);
 
   // Load initial paymentProviderId from sessionStorage
   const [paymentProviderId, setPaymentProviderId] = useState<string | undefined>(() => {
@@ -83,14 +90,22 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, []);
 
+  const addItemAndRefresh = useCallback(async () => {
+    await refreshCart();
+    setItemJustAdded(true);
+  }, [refreshCart]);
+
   return (
     <CartContext.Provider
       value={{
         cart,
         refreshCart,
+        addItemAndRefresh,
         setCart,
         suppressAutoOpen,
         setSuppressAutoOpen,
+        itemJustAdded,
+        setItemJustAdded,
         paymentProviderId,
         setPaymentProviderId,
         paymentStepLocked,

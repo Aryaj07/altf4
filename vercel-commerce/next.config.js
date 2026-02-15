@@ -31,6 +31,7 @@ module.exports = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 31536000, // Cache optimized images for 1 year
     remotePatterns: [
       {
         protocol: 'https',

@@ -9,7 +9,7 @@ import { createUrl } from "lib/utils";
 import { convertToDecimal } from "lib/medusa/helpers";
 import Image from "next/image";
 import Link from "next/link";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import CloseCart from "./close-cart";
 import DeleteItemButton from "./delete-item-button";
 import EditItemQuantityButton from "./edit-item-quantity-button";
@@ -22,35 +22,19 @@ type MerchandiseSearchParams = {
 
 export default function CartModal({ cart }: { cart: Cart | undefined }) {
   const [isOpen, setIsOpen] = useState(false);
-  const quantityRef = useRef(cart?.totalQuantity ?? 0);
 
-  const { suppressAutoOpen, setSuppressAutoOpen } = useCart();
+  const { itemJustAdded, setItemJustAdded } = useCart();
 
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
 
+  // Auto-open cart when an item is added
   useEffect(() => {
-    if (cart?.totalQuantity !== quantityRef.current) {
-      if (
-        !isOpen &&
-        !suppressAutoOpen &&
-        (cart?.totalQuantity ?? 0) > 0
-      ) {
-        setIsOpen(true);
-      }
-      quantityRef.current = cart?.totalQuantity ?? 0;
-
-      // reset suppress flag
-      if (suppressAutoOpen) {
-        setSuppressAutoOpen(false);
-      }
+    if (itemJustAdded) {
+      setIsOpen(true);
+      setItemJustAdded(false);
     }
-  }, [
-    cart?.totalQuantity,
-    isOpen,
-    suppressAutoOpen,
-    setSuppressAutoOpen,
-  ]);
+  }, [itemJustAdded, setItemJustAdded]);
 
   const cartEmpty = !cart || !cart.lines || cart.lines.length === 0;
 
