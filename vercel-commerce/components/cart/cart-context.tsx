@@ -78,7 +78,9 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const refreshCart = useCallback(async () => {
     try {
-      const res = await fetch("/api/cart");
+      const res = await fetch(`/api/cart?t=${Date.now()}`, {
+        cache: 'no-store',
+      });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`API error: ${res.status} — ${text}`);

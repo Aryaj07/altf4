@@ -23,7 +23,7 @@ import {
 } from "@mantine/core";
 import { IconInfoCircle, IconHome, IconBuilding, IconMapPin, IconPlus, IconStar } from "@tabler/icons-react";
 import type { UseFormReturnType } from "@mantine/form";
-import { BillingAddressFormData, ShippingAddressFormData } from "lib/checkout-schema";
+import { BillingAddressFormData, ShippingAddressFormData, normalizePhone } from "lib/checkout-schema";
 
 const getAddressIcon = (label: string) => {
   if (label === "Home") return <IconHome size={24} color="var(--mantine-color-blue-6)" />;
@@ -61,6 +61,8 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [billingSame, setBillingSame] = useState(true);
+  const [shippingStateOpen, setShippingStateOpen] = useState(false);
+  const [billingStateOpen, setBillingStateOpen] = useState(false);
 
   useEffect(() => {
     if (isSdkReady) {
@@ -312,6 +314,26 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
                   searchable
                   required
                   {...form.getInputProps("state")}
+                  dropdownOpened={shippingStateOpen}
+                  onDropdownOpen={() => setShippingStateOpen(true)}
+                  onDropdownClose={() => setShippingStateOpen(false)}
+                  onChange={(val) => {
+                    form.setFieldValue('state', val || '');
+                    setShippingStateOpen(false);
+                  }}
+                  onInput={(e) => {
+                    const inputVal = (e.target as HTMLInputElement).value;
+                    if (inputVal) {
+                      const match = INDIAN_STATES_WITH_CODES.find(
+                        s => s.name.toLowerCase() === inputVal.toLowerCase()
+                          || s.name.toLowerCase().startsWith(inputVal.toLowerCase())
+                      );
+                      if (match) {
+                        form.setFieldValue('state', match.name);
+                        setShippingStateOpen(false);
+                      }
+                    }
+                  }}
                 />
               </Grid.Col>
             </Grid>
@@ -329,9 +351,10 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
             <Select label="Country" placeholder="Select country" data={countryOptions} required searchable {...form.getInputProps("country")} />
             <TextInput label="Phone Number" placeholder="Enter phone number" required {...form.getInputProps("phone")}
               onChange={(event) => {
-                const value = event.target.value.replace(/\D/g, "").slice(0, 10);
+                const value = normalizePhone(event.target.value);
                 form.setFieldValue("phone", value);
               }}
+              autoComplete="tel-national"
             />
             <Checkbox label="Billing address same as shipping address" checked={billingSame} onChange={(e) => setBillingSame(e.currentTarget.checked)} />
             
@@ -359,6 +382,26 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
                       searchable
                       required
                       {...billingForm.getInputProps("state")}
+                      dropdownOpened={billingStateOpen}
+                      onDropdownOpen={() => setBillingStateOpen(true)}
+                      onDropdownClose={() => setBillingStateOpen(false)}
+                      onChange={(val) => {
+                        billingForm.setFieldValue('state', val || '');
+                        setBillingStateOpen(false);
+                      }}
+                      onInput={(e) => {
+                        const inputVal = (e.target as HTMLInputElement).value;
+                        if (inputVal) {
+                          const match = INDIAN_STATES_WITH_CODES.find(
+                            s => s.name.toLowerCase() === inputVal.toLowerCase()
+                              || s.name.toLowerCase().startsWith(inputVal.toLowerCase())
+                          );
+                          if (match) {
+                            billingForm.setFieldValue('state', match.name);
+                            setBillingStateOpen(false);
+                          }
+                        }
+                      }}
                     />
                   </Grid.Col>
                 </Grid>
@@ -376,9 +419,10 @@ export function ShippingStep({ form, billingForm, onComplete }: ShippingStepProp
                 <Select label="Country" placeholder="Select country" data={countryOptions} searchable required {...billingForm.getInputProps("country")} />
                 <TextInput label="Phone Number" placeholder="Enter phone number" required {...billingForm.getInputProps("phone")}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    const value = normalizePhone(e.target.value);
                     billingForm.setFieldValue("phone", value);
                   }}
+                  autoComplete="tel-national"
                 />
               </>
             )}

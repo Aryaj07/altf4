@@ -12,7 +12,7 @@ export const shippingAddressSchema = z.object({
   state: z.string().min(1, "State is required"),
   postalCode: z.string().regex(/^\d{6}$/, "Postal code must be exactly 6 digits"),
   country: z.string().min(1, "Country is required"),
-  phone: z.string().regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").regex(/^\d{10,13}$/, "Phone number must be 10-13 digits"),
 });
 
 export const billingAddressSchema = z.object({
@@ -23,8 +23,26 @@ export const billingAddressSchema = z.object({
   state: z.string().min(1, "State is required"),
   postalCode: z.string().regex(/^\d{6}$/, "Postal code must be exactly 6 digits"),
   country: z.string().min(1, "Country is required"),
-  phone: z.string().regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").regex(/^\d{10,13}$/, "Phone number must be 10-13 digits"),
 });
+
+/**
+ * Normalize a phone number by stripping country code prefixes and leading zeros.
+ * Returns a clean 10-digit Indian mobile number.
+ */
+export function normalizePhone(raw: string): string {
+  // Strip all non-digits
+  let digits = raw.replace(/\D/g, '');
+  // Remove +91 or 91 prefix (Indian country code)
+  if (digits.startsWith('91') && digits.length > 10) {
+    digits = digits.slice(2);
+  }
+  // Remove leading 0 (trunk prefix)
+  if (digits.startsWith('0') && digits.length > 10) {
+    digits = digits.slice(1);
+  }
+  return digits;
+}
 
 export const deliverySchema = z.object({
   selectedOption: z.string().min(1, "Please select a delivery option"),

@@ -99,5 +99,10 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json(cart);
+  return NextResponse.json(cart, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Pragma': 'no-cache',
+    },
+  });
 }

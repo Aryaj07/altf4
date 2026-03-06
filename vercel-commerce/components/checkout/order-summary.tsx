@@ -82,15 +82,20 @@ export function OrderSummary() {
         return;
       }
 
-      await refreshCart();
       setPromoApplied(true);
-      setDiscountLabel(
-        data?.discount?.percentage
-          ? `You saved ${data.discount.percentage}% on your order.`
-          : data?.discount?.amount
-          ? `You saved $${data.discount.amount / 100} on your order.`
-          : "Promo code applied!"
-      );
+
+      // Refresh the cart to get updated totals with the promo applied
+      await refreshCart();
+
+      // Determine discount label from the response cart
+      const responseCart = data?.cart;
+      const discountTotal = responseCart?.discount_total || 0;
+
+      if (discountTotal > 0) {
+        setDiscountLabel(`You saved on your order!`);
+      } else {
+        setDiscountLabel("Promo code applied!");
+      }
     } catch (error) {
       console.error(error);
       setPromoError("An unexpected error occurred.");

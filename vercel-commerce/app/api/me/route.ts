@@ -20,10 +20,20 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       )
     }
-    const { customer } = await sdk.store.customer.retrieve(
-      {},
-      { Authorization: `Bearer ${token}` }
-    )
+
+    // Fetch customer directly using the token
+    const MEDUSA_API = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API || 'http://localhost:9000'
+    const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || ''
+    const customerRes = await fetch(`${MEDUSA_API}/store/customers/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'x-publishable-api-key': PUBLISHABLE_KEY,
+      },
+    })
+    if (!customerRes.ok) {
+      throw new Error('Failed to retrieve customer profile')
+    }
+    const { customer } = await customerRes.json()
     const response = NextResponse.json({ customer })
     response.cookies.set({
       name: "auth_token",

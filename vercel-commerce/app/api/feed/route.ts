@@ -212,9 +212,15 @@ export async function GET() {
           labelIdx++;
         }
 
-        // Preorder availability date
+        // Availability date — required for preorder and backorder
         if (availability === 'preorder' && availabilityDate) {
           itemXml += `\n      <g:availability_date>${availabilityDate}</g:availability_date>`;
+        } else if (availability === 'backorder') {
+          // Google requires availability_date for backorder items
+          // Estimate 14 days from now if no specific date
+          const backorderDate = new Date();
+          backorderDate.setDate(backorderDate.getDate() + 14);
+          itemXml += `\n      <g:availability_date>${backorderDate.toISOString().split('T')[0]}T00:00:00Z</g:availability_date>`;
         }
 
         // Weight for shipping calculations
@@ -224,11 +230,20 @@ export async function GET() {
           itemXml += `\n      <g:shipping_weight>${product.weight} g</g:shipping_weight>`;
         }
 
-        // Shipping (free above 999 INR)
+        // Shipping — required for all products in India
         if (price >= 999) {
+          // Free shipping for orders above ₹999
           itemXml += `\n      <g:shipping>
         <g:country>IN</g:country>
+        <g:service>Standard</g:service>
         <g:price>0.00 ${CURRENCY}</g:price>
+      </g:shipping>`;
+        } else {
+          // Flat rate shipping for orders below ₹999
+          itemXml += `\n      <g:shipping>
+        <g:country>IN</g:country>
+        <g:service>Standard</g:service>
+        <g:price>50.00 ${CURRENCY}</g:price>
       </g:shipping>`;
         }
 

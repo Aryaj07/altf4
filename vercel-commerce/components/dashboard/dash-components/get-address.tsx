@@ -16,6 +16,7 @@ import {
   Switch,
 } from "@mantine/core";
 import { INDIAN_STATES_WITH_CODES, getStateCode } from "@/components/checkout/indian-states";
+import { normalizePhone } from "lib/checkout-schema";
 
 import { useForm } from "@mantine/form";
 import {
@@ -29,7 +30,7 @@ import {
   IconMapPin,
 } from "@tabler/icons-react";
 
-import { useState, useEffect, useCallback  } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { customZodResolver } from "lib/resolver";
 import { addressSchema, type AddressFormData } from "lib/auth-schema";
 import { sdk } from "@/lib/sdk/sdk";
@@ -151,6 +152,9 @@ export default function AddressManagement() {
   useEffect(() => {
   }, [isSdkReady, countries.length, addresses.length]);
 
+  const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+
   const addressForm = useForm<AddressFormData>({
     validate: customZodResolver(addressSchema),
     initialValues: {
@@ -225,10 +229,11 @@ export default function AddressManagement() {
         first_name: values.firstName,
         last_name: values.lastName,
         company: values.company,
+        address_name: values.label, // Maps to the address name field in Medusa
         address_1: values.address,
         address_2: values.address_2 || "",
         city: values.city,
-        province: stateCode || values.state, // Send state code for GST calculations
+        province: stateCode || values.state,
         postal_code: values.postalCode,
         phone: values.phone,
         country_code: values.country,
@@ -429,6 +434,26 @@ export default function AddressManagement() {
                   searchable
                   required
                   {...addressForm.getInputProps("state")}
+                  dropdownOpened={stateDropdownOpen}
+                  onDropdownOpen={() => setStateDropdownOpen(true)}
+                  onDropdownClose={() => setStateDropdownOpen(false)}
+                  onChange={(val) => {
+                    addressForm.setFieldValue('state', val || '');
+                    setStateDropdownOpen(false);
+                  }}
+                  onInput={(e) => {
+                    const inputVal = (e.target as HTMLInputElement).value;
+                    if (inputVal) {
+                      const match = INDIAN_STATES_WITH_CODES.find(
+                        s => s.name.toLowerCase() === inputVal.toLowerCase()
+                          || s.name.toLowerCase().startsWith(inputVal.toLowerCase())
+                      );
+                      if (match) {
+                        addressForm.setFieldValue('state', match.name);
+                        setStateDropdownOpen(false);
+                      }
+                    }
+                  }}
                 />
               </Grid.Col>
             </Grid>
@@ -439,6 +464,10 @@ export default function AddressManagement() {
                   placeholder="Enter postal code"
                   required
                   {...addressForm.getInputProps("postalCode")}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    addressForm.setFieldValue('postalCode', value);
+                  }}
                 />
               </Grid.Col>
               <Grid.Col span={6}>
@@ -449,6 +478,26 @@ export default function AddressManagement() {
                   required
                   searchable
                   {...addressForm.getInputProps("country")}
+                  dropdownOpened={countryDropdownOpen}
+                  onDropdownOpen={() => setCountryDropdownOpen(true)}
+                  onDropdownClose={() => setCountryDropdownOpen(false)}
+                  onChange={(val) => {
+                    addressForm.setFieldValue('country', val || '');
+                    setCountryDropdownOpen(false);
+                  }}
+                  onInput={(e) => {
+                    const inputVal = (e.target as HTMLInputElement).value;
+                    if (inputVal) {
+                      const match = countries.find(
+                        c => c.label.toLowerCase() === inputVal.toLowerCase()
+                          || c.label.toLowerCase().startsWith(inputVal.toLowerCase())
+                      );
+                      if (match) {
+                        addressForm.setFieldValue('country', match.value);
+                        setCountryDropdownOpen(false);
+                      }
+                    }
+                  }}
                 />
               </Grid.Col>
             </Grid>
@@ -456,6 +505,11 @@ export default function AddressManagement() {
               label="Phone Number (Optional)"
               placeholder="Enter phone number"
               {...addressForm.getInputProps("phone")}
+              onChange={(e) => {
+                const value = normalizePhone(e.target.value);
+                addressForm.setFieldValue('phone', value);
+              }}
+              autoComplete="tel-national"
             />
             <Switch
               label="Set as default address"
