@@ -14,6 +14,11 @@ import {
   Alert,
   Modal,
   Image,
+  Timeline,
+  Loader,
+  CopyButton,
+  Tooltip,
+  Anchor,
 } from "@mantine/core";
 
 import {
@@ -24,8 +29,14 @@ import {
   IconTruck,
   IconMapPin,
   IconPackage,
+  IconCopy,
+  IconCheck,
+  IconBox,
+  IconTruckDelivery,
+  IconCircleCheck,
+  IconClock,
 } from "@tabler/icons-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { sdk } from "@/lib/sdk/sdk";
 import Price from "components/price-new";
 import { useAccount } from "@/components/account/account-context";
@@ -39,17 +50,47 @@ type OrderItem = {
   image: string;
 };
 
+type TrackingLabel = {
+  tracking_number: string;
+  tracking_url: string | null;
+  label_url: string | null;
+};
+
+type FulfillmentDetail = {
+  fulfillment_id: string;
+  status: string;
+  packed_at: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  created_at: string | null;
+  tracking: TrackingLabel[];
+  items: { title: string; sku: string; quantity: number }[];
+};
+
+type OrderTrackingData = {
+  order_id: string;
+  fulfillment_status: string;
+  fulfillments: FulfillmentDetail[];
+};
+
 const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "delivered":
-      return "green";
-    case "processing":
-      return "yellow";
-    case "shipped":
-      return "blue";
-    default:
-      return "gray";
-  }
+  const s = status?.toLowerCase() || "";
+  if (s.includes("delivered")) return "green";
+  if (s.includes("shipped")) return "blue";
+  if (s.includes("fulfilled") || s.includes("packed")) return "indigo";
+  if (s.includes("processing") || s.includes("pending")) return "yellow";
+  return "gray";
+};
+
+const getFulfillmentStatusLabel = (status: string) => {
+  const s = status?.toLowerCase() || "";
+  if (s.includes("delivered")) return "Delivered";
+  if (s.includes("partially_shipped")) return "Partially Shipped";
+  if (s.includes("shipped")) return "Shipped";
+  if (s.includes("partially_fulfilled")) return "Partially Fulfilled";
+  if (s.includes("fulfilled")) return "Fulfilled";
+  if (s.includes("not_fulfilled")) return "Awaiting Fulfillment";
+  return status || "Processing";
 };
 
 export default function OrderHistory() {
@@ -57,7 +98,12 @@ export default function OrderHistory() {
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+  const [trackingData, setTrackingData] = useState<OrderTrackingData | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
   const { isSdkReady } = useAccount();
+
   useEffect(() => {
     if (isSdkReady) {
       sdk.store.order
@@ -66,7 +112,6 @@ export default function OrderHistory() {
             "+id,+display_id,+currency_code,+created_at,+fulfillment_status,+status,+total,+item_total,+subtotal,+shipping_total,+tax_total,+items.id,+items.title,+items.variant_title,+items.quantity,+items.unit_price,+items.thumbnail,+shipping_methods.*,+shipping_methods.name,+shipping_address.address_1,+shipping_address.city,+shipping_address.postal_code",
         })
         .then(({ orders }) => {
-
           const detailedOrders = orders.map((order: any) => ({
             id: order.id,
             display_id: order.display_id,
@@ -82,8 +127,7 @@ export default function OrderHistory() {
                 variant: item.variant_title || "",
                 quantity: item.quantity ?? 0,
                 price: item.unit_price ?? 0,
-                image:
-                  item.thumbnail || "/placeholder.svg?height=60&width=60",
+                image: item.thumbnail || "/placeholder.svg?height=60&width=60",
               })) ?? [],
             shipping: {
               method: order.shipping_methods?.[0]?.name || "N/A",
@@ -103,7 +147,30 @@ export default function OrderHistory() {
     }
   }, [isSdkReady]);
 
+  const fetchTracking = useCallback(async (orderId: string) => {
+    setTrackingLoading(true);
+    setTrackingOrderId(orderId);
+    setTrackingData(null);
+    setTrackingModalOpen(true);
 
+    try {
+      const res = await fetch(`/api/order-tracking?order_id=${orderId}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch tracking");
+      }
+
+      const data: OrderTrackingData = await res.json();
+      setTrackingData(data);
+    } catch (err) {
+      console.error("Failed to fetch tracking:", err);
+      setTrackingData(null);
+    } finally {
+      setTrackingLoading(false);
+    }
+  }, []);
 
   const toggleOrderExpansion = (orderId: string) => {
     setExpandedOrders((prev) =>
@@ -116,55 +183,54 @@ export default function OrderHistory() {
     setOrderModalOpen(true);
   };
 
+  const getTimelineActiveIndex = (fulfillment: FulfillmentDetail) => {
+    if (fulfillment.delivered_at) return 3;
+    if (fulfillment.shipped_at) return 2;
+    if (fulfillment.packed_at) return 1;
+    return 0;
+  };
+
   return (
     <>
-    <Paper shadow="sm" p="xl" radius="md" withBorder>
+      <Paper shadow="sm" p="xl" radius="md" withBorder>
         <Group justify="space-between" mb="md">
-        <Title order={3}>Order History</Title>
+          <Title order={3}>Order History</Title>
         </Group>
         <Stack>
-        {orders.map((order) => (
+          {orders.map((order) => (
             <Card key={order.id} padding="md" radius="md" withBorder>
-            <Stack gap="sm">
+              <Stack gap="sm">
                 <Group justify="space-between" align="flex-start">
-                <div>
+                  <div>
                     <Group gap="xs" mb="xs">
-                    <Text fw={500}>Order Id: {order.id}</Text>
-                    <Badge color={getStatusColor(order.status)} size="sm">
-                        {order.status}
-                    </Badge>
+                      <Text fw={500}>Order Id: {order.id}</Text>
+                      <Badge color={getStatusColor(order.status)} size="sm">
+                        {getFulfillmentStatusLabel(order.status)}
+                      </Badge>
                     </Group>
                     <Text size="sm" c="dimmed">
-                    {order.date} • {order.items.length} items
+                      {order.date} • {order.items.length} items
                     </Text>
-                </div>
-                <Group gap="xs">
+                  </div>
+                  <Group gap="xs">
                     <Text fw={500} size="lg" component="span">
-                    <Price
-                        amount={order.total}
-                        currencyCode={order.currency}
-                        showCurrency={false}
-                    />
+                      <Price amount={order.total} currencyCode={order.currency} showCurrency={false} />
                     </Text>
                     <ActionIcon variant="outline" size="sm" onClick={() => toggleOrderExpansion(order.id)}>
-                    {expandedOrders.includes(order.id) ? (
-                        <IconChevronUp size={16} />
-                    ) : (
-                        <IconChevronDown size={16} />
-                    )}
+                      {expandedOrders.includes(order.id) ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
                     </ActionIcon>
-                </Group>
+                  </Group>
                 </Group>
                 <Collapse in={expandedOrders.includes(order.id)}>
-                <Divider mb="md" />
-                <Stack gap="md">
+                  <Divider mb="md" />
+                  <Stack gap="md">
                     <div>
-                    <Text fw={500} size="sm" mb="xs">
+                      <Text fw={500} size="sm" mb="xs">
                         Items Ordered:
-                    </Text>
-                    <Stack gap="xs">
+                      </Text>
+                      <Stack gap="xs">
                         {order.items.map((item: OrderItem) => (
-                        <Group key={item.id} gap="sm">
+                          <Group key={item.id} gap="sm">
                             <Image
                               src={item.image || "/placeholder.svg"}
                               alt={item.name}
@@ -174,162 +240,321 @@ export default function OrderHistory() {
                               radius={4}
                             />
                             <div style={{ flex: 1 }}>
-                            <Text size="sm" fw={500}>
+                              <Text size="sm" fw={500}>
                                 {item.name}
-                            </Text>
-                            <Text size="xs" c="dimmed">
+                              </Text>
+                              <Text size="xs" c="dimmed">
                                 {item.variant} • Qty: {item.quantity}
-                            </Text>
+                              </Text>
                             </div>
                             <Text fw={500} size="lg" component="span">
-                            <Price
+                              <Price
                                 amount={(item.price * item.quantity).toString()}
                                 currencyCode={order.currency}
                                 showCurrency={false}
-                            />
+                              />
                             </Text>
-                        </Group>
+                          </Group>
                         ))}
-                    </Stack>
+                      </Stack>
                     </div>
                     <div>
-                    <Text fw={500} size="md" mb="xs">
+                      <Text fw={500} size="md" mb="xs">
                         Shipping Details:
-                    </Text>
-                    <Group gap="xs" mb="xs">
+                      </Text>
+                      <Group gap="xs" mb="xs">
                         <IconTruck size={16} />
                         <Text size="md">{order.shipping.method}</Text>
-                    </Group>
-                    <Group gap="xs" mb="xs">
+                      </Group>
+                      <Group gap="xs" mb="xs">
                         <IconMapPin size={16} />
                         <Text size="md">{order.shipping.address}</Text>
-                    </Group>
-                    {order.shipping.trackingNumber && (
-                        <Group gap="xs">
-                        <IconPackage size={16} />
-                        <Text size="md">Tracking: {order.shipping_methods}</Text>
-                        </Group>
-                    )}
+                      </Group>
                     </div>
                     <div>
-                    <Text fw={500} size="md" mb="xs">
+                      <Text fw={500} size="md" mb="xs">
                         Order Summary:
-                    </Text>
-                    <Stack gap={4}>
+                      </Text>
+                      <Stack gap={4}>
                         <Group justify="space-between">
-                        <Text size="md">Subtotal:</Text>
-                        <Text fw={500} size="lg" component="span">
+                          <Text size="md">Subtotal:</Text>
+                          <Text fw={500} size="lg" component="span">
                             <Price amount={order.subtotal ?? 0} currencyCode={order.currency} showCurrency={false} />
-                        </Text>
+                          </Text>
                         </Group>
                         <Group justify="space-between">
-                        <Text size="md">Shipping:</Text>
-                        <Text fw={500} size="lg" component="span">
+                          <Text size="md">Shipping:</Text>
+                          <Text fw={500} size="lg" component="span">
                             <Price amount={order.shipping_cost ?? 0} currencyCode={order.currency} showCurrency={false} />
-                        </Text>
+                          </Text>
                         </Group>
                         <Group justify="space-between">
-                        <Text size="md">Tax:</Text>
-                        <Text fw={500} size="lg" component="span">
+                          <Text size="md">Tax:</Text>
+                          <Text fw={500} size="lg" component="span">
                             <Price amount={order.tax ?? 0} currencyCode={order.currency} showCurrency={false} />
-                        </Text>
+                          </Text>
                         </Group>
                         <Divider />
                         <Group justify="space-between">
-                        <Text fw={500}>Total:</Text>
-                        <Text fw={500} size="lg" component="span">
+                          <Text fw={500}>Total:</Text>
+                          <Text fw={500} size="lg" component="span">
                             <Price amount={order.total ?? 0} currencyCode={order.currency} showCurrency={false} />
-                        </Text>
+                          </Text>
                         </Group>
-                    </Stack>
+                      </Stack>
                     </div>
                     <Group gap="xs">
-                    <Button
+                      <Button
                         variant="outline"
                         size="sm"
                         leftSection={<IconEye size={14} />}
                         onClick={() => handleViewOrder(order)}
-                    >
+                      >
                         View Details
-                    </Button>
+                      </Button>
+                      {order.status && order.status !== "not_fulfilled" && (
+                        <Button
+                          variant="light"
+                          size="sm"
+                          color="blue"
+                          leftSection={<IconPackage size={14} />}
+                          onClick={() => fetchTracking(order.id)}
+                        >
+                          Track Order
+                        </Button>
+                      )}
                     </Group>
-                </Stack>
+                  </Stack>
                 </Collapse>
-            </Stack>
+              </Stack>
             </Card>
-        ))}
+          ))}
         </Stack>
         <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" mt="md">
-        <Group justify="space-between" align="center">
+          <Group justify="space-between" align="center">
             <div>
-            <Text fw={500} size="sm">
+              <Text fw={500} size="sm">
                 Having issues with your order?
-            </Text>
-            <Text size="sm">Contact us at our email: {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}</Text>
+              </Text>
+              <Text size="sm">Contact us at our email: {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}</Text>
             </div>
-        </Group>
+          </Group>
         </Alert>
-    </Paper>
+      </Paper>
 
-
-
-    {/* Order Details Modal */}
-    <Modal
-    opened={orderModalOpen}
-    onClose={() => setOrderModalOpen(false)}
-    title={`Order Details for Order Id: ${selectedOrder?.id}`}
-    size="lg"
-    centered
-    >
-    {selectedOrder && (
-        <Stack>
-        <Group justify="space-between">
-            <Badge color={getStatusColor(selectedOrder.status)} size="lg">
-            {selectedOrder.status}
-            </Badge>
-            <Text c="dimmed">Ordered on {selectedOrder.date}</Text>
-        </Group>
-        <Divider />
-        <div>
-            <Text fw={500} mb="md">
-            Items ({selectedOrder.items.length})
-            </Text>
-            <Stack gap="md">
-            {selectedOrder.items.map((item: any) => (
-                <Group key={item.id} gap="md">
-                <Image
-                    src={item.image || "/placeholder.svg"}
-                    alt={item.name}
-                    w={60}
-                    h={60}
-                    fit="contain"
-                    radius={4}
-                />
-                <div style={{ flex: 1 }}>
-                    <Text fw={500}>{item.name}</Text>
-                    <Text size="sm" c="dimmed">
-                    {item.variant}
+      {/* Order Details Modal */}
+      <Modal
+        opened={orderModalOpen}
+        onClose={() => setOrderModalOpen(false)}
+        title={`Order Details for Order Id: ${selectedOrder?.id}`}
+        size="lg"
+        centered
+      >
+        {selectedOrder && (
+          <Stack>
+            <Group justify="space-between">
+              <Badge color={getStatusColor(selectedOrder.status)} size="lg">
+                {getFulfillmentStatusLabel(selectedOrder.status)}
+              </Badge>
+              <Text c="dimmed">Ordered on {selectedOrder.date}</Text>
+            </Group>
+            <Divider />
+            <div>
+              <Text fw={500} mb="md">
+                Items ({selectedOrder.items.length})
+              </Text>
+              <Stack gap="md">
+                {selectedOrder.items.map((item: any) => (
+                  <Group key={item.id} gap="md">
+                    <Image src={item.image || "/placeholder.svg"} alt={item.name} w={60} h={60} fit="contain" radius={4} />
+                    <div style={{ flex: 1 }}>
+                      <Text fw={500}>{item.name}</Text>
+                      <Text size="sm" c="dimmed">
+                        {item.variant}
+                      </Text>
+                      <Text size="sm">Quantity: {item.quantity}</Text>
+                    </div>
+                    <Text fw={500} component="span">
+                      <Price
+                        amount={(item.price * item.quantity).toString()}
+                        currencyCode={selectedOrder.currency}
+                        showCurrency={false}
+                      />
                     </Text>
-                    <Text size="sm">Quantity: {item.quantity}</Text>
-                </div>
-                <Text fw={500} component ="span">
-                    <Price
-                    amount={(item.price * item.quantity).toString()}
-                    currencyCode={selectedOrder.currency}
-                    showCurrency={false}
-                    />
+                  </Group>
+                ))}
+              </Stack>
+            </div>
+            <Divider />
+            <Group justify="flex-end">
+              <Button onClick={() => setOrderModalOpen(false)}>Close</Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+
+      {/* Tracking Modal */}
+      <Modal
+        opened={trackingModalOpen}
+        onClose={() => {
+          setTrackingModalOpen(false);
+          setTrackingData(null);
+          setTrackingOrderId(null);
+        }}
+        title={
+          <Group gap="xs">
+            <IconPackage size={20} />
+            <Text fw={600}>Shipment Tracking</Text>
+          </Group>
+        }
+        size="md"
+        centered
+      >
+        {trackingLoading ? (
+          <Stack align="center" py="xl">
+            <Loader size="md" />
+            <Text size="sm" c="dimmed">
+              Fetching tracking details...
+            </Text>
+          </Stack>
+        ) : trackingData ? (
+          <Stack gap="lg">
+            {/* Overall status */}
+            <Group justify="space-between">
+              <Text size="sm" c="dimmed">
+                Order: {trackingOrderId}
+              </Text>
+              <Badge color={getStatusColor(trackingData.fulfillment_status)} size="md">
+                {getFulfillmentStatusLabel(trackingData.fulfillment_status)}
+              </Badge>
+            </Group>
+
+            {trackingData.fulfillments.length === 0 ? (
+              <Alert color="yellow" variant="light" icon={<IconClock size={16} />}>
+                <Text size="sm">
+                  Your order is being prepared. Tracking information will be available once it has been shipped.
                 </Text>
-                </Group>
-            ))}
-            </Stack>
-        </div>
-        <Divider />
-        <Group justify="flex-end" >
-            <Button onClick={() => setOrderModalOpen(false)}>Close</Button>
-        </Group>
-        </Stack>
-    )}
-    </Modal>
+              </Alert>
+            ) : (
+              trackingData.fulfillments.map((fulfillment, idx) => (
+                <Card key={fulfillment.fulfillment_id} padding="md" radius="md" withBorder>
+                  <Stack gap="md">
+                    {trackingData.fulfillments.length > 1 && (
+                      <Text fw={500} size="sm">
+                        Shipment {idx + 1}
+                      </Text>
+                    )}
+
+                    {/* Tracking Numbers */}
+                    {fulfillment.tracking.length > 0 && (
+                      <div>
+                        <Text size="sm" fw={500} mb="xs">
+                          Tracking Number{fulfillment.tracking.length > 1 ? "s" : ""}:
+                        </Text>
+                        <Stack gap="xs">
+                          {fulfillment.tracking.map((t, tIdx) => (
+                            <Group key={tIdx} gap="xs">
+                              <Badge variant="light" color="blue" size="lg" style={{ fontFamily: "monospace" }}>
+                                {t.tracking_number}
+                              </Badge>
+                              <CopyButton value={t.tracking_number}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? "Copied!" : "Copy tracking number"}>
+                                    <ActionIcon variant="subtle" color={copied ? "green" : "gray"} size="sm" onClick={copy}>
+                                      {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                              {t.tracking_url && (
+                                <Anchor href={t.tracking_url} target="_blank" size="sm">
+                                  Track on carrier site
+                                </Anchor>
+                              )}
+                            </Group>
+                          ))}
+                        </Stack>
+                      </div>
+                    )}
+
+                    {/* Fulfillment Timeline */}
+                    <div>
+                      <Text size="sm" fw={500} mb="sm">
+                        Shipment Progress:
+                      </Text>
+                      <Timeline active={getTimelineActiveIndex(fulfillment)} bulletSize={24} lineWidth={2}>
+                        <Timeline.Item
+                          bullet={<IconBox size={12} />}
+                          title="Order Placed"
+                        >
+                          <Text size="xs" c="dimmed">
+                            {fulfillment.created_at
+                              ? new Date(fulfillment.created_at).toLocaleString()
+                              : "—"}
+                          </Text>
+                        </Timeline.Item>
+
+                        <Timeline.Item
+                          bullet={<IconPackage size={12} />}
+                          title="Packed"
+                        >
+                          <Text size="xs" c="dimmed">
+                            {fulfillment.packed_at
+                              ? new Date(fulfillment.packed_at).toLocaleString()
+                              : "Pending"}
+                          </Text>
+                        </Timeline.Item>
+
+                        <Timeline.Item
+                          bullet={<IconTruckDelivery size={12} />}
+                          title="Shipped"
+                        >
+                          <Text size="xs" c="dimmed">
+                            {fulfillment.shipped_at
+                              ? new Date(fulfillment.shipped_at).toLocaleString()
+                              : "Pending"}
+                          </Text>
+                        </Timeline.Item>
+
+                        <Timeline.Item
+                          bullet={<IconCircleCheck size={12} />}
+                          title="Delivered"
+                        >
+                          <Text size="xs" c="dimmed">
+                            {fulfillment.delivered_at
+                              ? new Date(fulfillment.delivered_at).toLocaleString()
+                              : "Pending"}
+                          </Text>
+                        </Timeline.Item>
+                      </Timeline>
+                    </div>
+
+                    {/* Items in this fulfillment */}
+                    {fulfillment.items.length > 0 && (
+                      <div>
+                        <Text size="sm" fw={500} mb="xs">
+                          Items in this shipment:
+                        </Text>
+                        <Stack gap={4}>
+                          {fulfillment.items.map((item, iIdx) => (
+                            <Text key={iIdx} size="sm" c="dimmed">
+                              {item.title} {item.sku ? `(${item.sku})` : ""} × {item.quantity}
+                            </Text>
+                          ))}
+                        </Stack>
+                      </div>
+                    )}
+                  </Stack>
+                </Card>
+              ))
+            )}
+          </Stack>
+        ) : (
+          <Alert color="red" variant="light">
+            <Text size="sm">Unable to fetch tracking details. Please try again later.</Text>
+          </Alert>
+        )}
+      </Modal>
     </>
   );
 }
