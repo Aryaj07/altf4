@@ -77,6 +77,7 @@ const getStatusColor = (status: string) => {
   const s = status?.toLowerCase() || "";
   if (s.includes("delivered")) return "green";
   if (s.includes("shipped")) return "blue";
+  if (s.includes("not_fulfilled")) return "yellow";
   if (s.includes("fulfilled") || s.includes("packed")) return "indigo";
   if (s.includes("processing") || s.includes("pending")) return "yellow";
   return "gray";
@@ -87,9 +88,9 @@ const getFulfillmentStatusLabel = (status: string) => {
   if (s.includes("delivered")) return "Delivered";
   if (s.includes("partially_shipped")) return "Partially Shipped";
   if (s.includes("shipped")) return "Shipped";
+  if (s.includes("not_fulfilled")) return "Awaiting Fulfillment";
   if (s.includes("partially_fulfilled")) return "Partially Fulfilled";
   if (s.includes("fulfilled")) return "Fulfilled";
-  if (s.includes("not_fulfilled")) return "Awaiting Fulfillment";
   return status || "Processing";
 };
 
@@ -203,7 +204,7 @@ export default function OrderHistory() {
                 <Group justify="space-between" align="flex-start">
                   <div>
                     <Group gap="xs" mb="xs">
-                      <Text fw={500}>Order Id: {order.id}</Text>
+                      <Text fw={500}>Order #{order.display_id}</Text>
                       <Badge color={getStatusColor(order.status)} size="sm">
                         {getFulfillmentStatusLabel(order.status)}
                       </Badge>
@@ -346,7 +347,7 @@ export default function OrderHistory() {
       <Modal
         opened={orderModalOpen}
         onClose={() => setOrderModalOpen(false)}
-        title={`Order Details for Order Id: ${selectedOrder?.id}`}
+        title={`Order Details — #${selectedOrder?.display_id}`}
         size="lg"
         centered
       >
@@ -422,7 +423,7 @@ export default function OrderHistory() {
             {/* Overall status */}
             <Group justify="space-between">
               <Text size="sm" c="dimmed">
-                Order: {trackingOrderId}
+                Order #{orders.find(o => o.id === trackingOrderId)?.display_id || trackingOrderId}
               </Text>
               <Badge color={getStatusColor(trackingData.fulfillment_status)} size="md">
                 {getFulfillmentStatusLabel(trackingData.fulfillment_status)}

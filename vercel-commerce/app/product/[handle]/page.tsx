@@ -292,7 +292,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
 
             {/* Full width row: Product Features */}
             <div className="basis-full mt-8">
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8 lg:gap-10 py-8 border-t border-b border-neutral-200 dark:border-neutral-800">
+              <div className="flex flex-wrap justify-evenly gap-6 md:gap-8 lg:gap-10 py-8 border-t border-b border-neutral-200 dark:border-neutral-800">
                 {/* Free Shipping */}
                 <div className="flex flex-col items-center text-center gap-3">
                   <div className="w-12 h-12">
@@ -341,13 +341,11 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
                   </div>
                 </div>
 
-                {/* Free Skates */}
+                {/* Free Skates - temporarily hidden
                 <div className="flex flex-col items-center text-center gap-3">
                   <div className="w-12 h-12">
                     <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                      {/* Rectangle representing skate sheet */}
                       <rect x="12" y="12" width="40" height="40" rx="3" stroke="currentColor" strokeWidth="2" fill="none"/>
-                      {/* Dots pattern representing individual skates - 4x4 grid */}
                       <circle cx="22" cy="22" r="2.5" fill="currentColor"/>
                       <circle cx="32" cy="22" r="2.5" fill="currentColor"/>
                       <circle cx="42" cy="22" r="2.5" fill="currentColor"/>
@@ -364,6 +362,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
                     <p className="text-xs text-neutral-500 dark:text-neutral-400">With keyboards & mice</p>
                   </div>
                 </div>
+                */}
 
                 {/* 7 Days Replacement */}
                 <div className="flex flex-col items-center text-center gap-3">

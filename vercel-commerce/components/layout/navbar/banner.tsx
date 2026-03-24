@@ -7,7 +7,7 @@ const messages = [
   // { text: 'Order MAD 68 HE & save ₹200 (auto applied on checkout)! 🚀', link: null },
   // { text: '🎄 Christmas & End of Year Sale: ₹100 OFF above ₹4,000 | ₹200 OFF above ₹5,000! 🎊', link: null },
   { text: 'Free shipping on orders over ₹999! 🎉', link: null },
-  { text: 'Free skates (random) on all keyboard and mouse orders! 🎉', link: null },
+  { text: 'Join our discord for coupons and special offers!', link: null },
 ];
 
 export default function Banner() {
