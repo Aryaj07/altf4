@@ -20,16 +20,15 @@ export async function GET(
   const from = req.query.from as string | undefined
   const to = req.query.to as string | undefined
 
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-
   try {
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+
     // Build filters
     const filters: any = {}
     if (from || to) {
       filters.created_at = {}
       if (from) filters.created_at.$gte = new Date(from).toISOString()
       if (to) {
-        // Set to end of the day
         const toDate = new Date(to)
         toDate.setHours(23, 59, 59, 999)
         filters.created_at.$lte = toDate.toISOString()
@@ -46,7 +45,7 @@ export async function GET(
         "currency_code",
         "status",
         "fulfillment_status",
-        // Totals (computed fields)
+        // Totals
         "total",
         "subtotal",
         "tax_total",
@@ -55,14 +54,29 @@ export async function GET(
         "item_total",
         "item_subtotal",
         "item_tax_total",
-        "shipping_subtotal",
-        "shipping_tax_total",
-        // Items - use wildcard to get all fields including computed totals
+        // Items
         "items.*",
-        // Shipping address
-        "shipping_address.*",
-        // Billing address
-        "billing_address.*",
+        // Addresses — list fields explicitly
+        "shipping_address.first_name",
+        "shipping_address.last_name",
+        "shipping_address.address_1",
+        "shipping_address.address_2",
+        "shipping_address.city",
+        "shipping_address.province",
+        "shipping_address.postal_code",
+        "shipping_address.country_code",
+        "shipping_address.phone",
+        "shipping_address.metadata",
+        "billing_address.first_name",
+        "billing_address.last_name",
+        "billing_address.address_1",
+        "billing_address.address_2",
+        "billing_address.city",
+        "billing_address.province",
+        "billing_address.postal_code",
+        "billing_address.country_code",
+        "billing_address.phone",
+        "billing_address.metadata",
         // Customer
         "customer.first_name",
         "customer.last_name",
@@ -76,9 +90,10 @@ export async function GET(
       ],
       filters,
       pagination: {
-        take: 9999, // Get all orders
+        take: 9999,
       },
     })
+
 
     // Indian state code mapping (first 2 digits of GSTIN or from province)
     const stateCodeMap: Record<string, string> = {
