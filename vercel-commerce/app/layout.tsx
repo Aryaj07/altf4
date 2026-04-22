@@ -7,6 +7,7 @@ import MantineClientProvider from 'components/providers/mantine-client-provider'
 import { AccountProvider } from '@/components/account/account-context';
 import { cookies } from 'next/headers';
 import Banner from 'components/layout/navbar/banner';
+import Script from 'next/script';
 
 
 const { TWITTER_CREATOR, TWITTER_SITE, SITE_NAME } = process.env;
@@ -137,6 +138,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </CartProvider>
           </MantineClientProvider>
         </AccountProvider>
+        <Script
+          src="https://analytics.altf4gear.com/api/script.js"
+          data-site-id="e6f0595e69c5"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
