@@ -84,7 +84,7 @@ const ReturnPolicy = () => {
           </ul>
           <div data-custom-class="body_text" style={{ lineHeight: 1.5 }}><br /></div>
           <div data-custom-class="body_text" style={{ lineHeight: 1.5 }}>
-            <span>For defective or damaged products, please contact us at the contact details below to arrange a refund or exchange.</span>
+            <span>For defective or damaged products, please contact us at the contact details below to initiate a Return Merchandise Authorization (RMA) request. Altf4 shall, at its sole discretion, first attempt to repair the reported defect. A replacement shall be provided only in the event that the product is determined to be beyond economical or technical repair.</span>
           </div>
           <div style={{ lineHeight: 1.5 }}><br /></div>
           <div data-custom-class="heading_1" style={{ lineHeight: 1.5 }}>
