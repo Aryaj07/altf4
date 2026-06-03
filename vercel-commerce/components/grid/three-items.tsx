@@ -1,6 +1,6 @@
 import { getServerCategories, getServerCategoryProducts } from 'lib/medusa/server';
 import type { Product } from 'lib/medusa/types';
-import { getProductRatings, type ProductRatingsMap } from 'lib/review-utils';
+import { getProductRatings } from 'lib/review-utils';
 import { hasAnyPreorderVariant, isProductSoldOut } from 'lib/preorder-utils';
 import RotatingThreeItemGrid from './rotating-three-items';
 
@@ -41,8 +41,9 @@ export async function ThreeItemGrid() {
     for (const category of sortedCategories) {
       try {
         const products = await getServerCategoryProducts(category.handle);
-        if (products && products.length > 0) {
-          categoryProducts.push(products);
+        const availableProducts = products?.filter(p => !isProductSoldOut(p)) ?? [];
+        if (availableProducts.length > 0) {
+          categoryProducts.push(availableProducts);
         }
       } catch (error) {
         console.error(`Error fetching products for category ${category.handle}:`, error);
