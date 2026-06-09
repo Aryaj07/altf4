@@ -14,31 +14,13 @@ import Link from 'next/link';
 import Reviews from '@/components/review/review';
 import SummaryReview from '@/components/review/summary-review';
 import { ProductReviewButton } from '@/components/review/product-review-button';
-import { sdkReview } from "@/lib/sdk/sdk-review";
+import { getCachedProductReviewStats } from 'lib/review-utils';
 import { Breadcrumb } from 'components/product/breadcrumb';
 import { hasAnyPreorderVariant, isProductSoldOut } from 'lib/preorder-utils';
 import { reshapeProduct } from 'lib/medusa/utils';
 // import { ProductDetailsImages } from 'components/product/product-details-images';
 
 export const revalidate = 60; // Revalidate every 60 seconds
-
-// Helper function to get review stats for structured data
-async function getReviewStats(productId: string): Promise<any | null> {
-  try {
-    const res = await sdkReview.store.productReviews.listStats({
-      product_id: productId,
-      offset: 0,
-      limit: 100,
-    });
-    if (res && (res as any).product_review_stats && (res as any).product_review_stats.length > 0) {
-      return (res as any).product_review_stats[0];
-    }
-    return null;
-  } catch (err) {
-    console.error("Failed to fetch review stats for structured data", err);
-    return null;
-  }
-}
 
 export async function generateMetadata({
   params
@@ -118,26 +100,12 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
       return notFound();
     }
 
-    // Fetch review stats for structured data
-    const reviewStats = await getReviewStats(product.id!);
-    
-    // Fetch product description sections
-    const descriptionSections = await getProductDescriptionSections(product.id!);
-    
-    // Fetch review count
-    let reviewCount = 0;
-    try {
-      const reviewStatsForCount = await sdkReview.store.productReviews.listStats({
-        product_id: product.id!,
-        offset: 0,
-        limit: 1,
-      });
-      if (reviewStatsForCount && (reviewStatsForCount as any).product_review_stats?.[0]) {
-        reviewCount = (reviewStatsForCount as any).product_review_stats[0].review_count || 0;
-      }
-    } catch (err) {
-      console.error("Failed to fetch review count", err);
-    }
+    // Single cached call for both structured data and tab count (was 2 separate uncached SDK calls)
+    const [reviewStats, descriptionSections] = await Promise.all([
+      getCachedProductReviewStats(product.id!),
+      getProductDescriptionSections(product.id!)
+    ]);
+    const reviewCount = reviewStats?.review_count || 0;
 
     // Build comprehensive Schema.org Product structured data
     const productJsonLd: any = {
@@ -415,7 +383,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
 
           {/* Related Products */}
           <div className="mt-12">
-            <Suspense>
+            <Suspense fallback={<RelatedProductsSkeleton />}>
               <RelatedProducts id={product.id!} product={product} />
             </Suspense>
           </div>
@@ -431,6 +399,26 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
     console.error('Error rendering product page:', error);
     return notFound();
   }
+}
+
+function RelatedProductsSkeleton() {
+  return (
+    <div className="py-8">
+      <h2 className="mb-4 text-2xl font-bold">Related Products</h2>
+      <ul className="flex w-full gap-4 overflow-x-auto pt-1">
+        {Array(5)
+          .fill(0)
+          .map((_, index) => (
+            <li
+              key={index}
+              className="aspect-square w-full flex-none min-[475px]:w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5"
+            >
+              <div className="h-full w-full animate-pulse rounded-lg bg-neutral-100 dark:bg-neutral-900" />
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
 }
 
 async function RelatedProducts({ id, product }: { id: string; product: Product }) {
@@ -468,13 +456,14 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
       }
     }
 
-    // Strategy 2: Same category (e.g. Mouse → other mice)
+    // Strategy 2: Same category — batch all matching active categories into one query
     if (relatedProducts.length < 5) {
-      for (const catId of productCategoryIds) {
-        if (!activeCategoryIds.includes(catId)) continue;
+      const validCatIds = productCategoryIds.filter(cid => activeCategoryIds.includes(cid));
+      if (validCatIds.length > 0) {
+        const categoryFilter = validCatIds.map(cid => `category_id[]=${cid}`).join('&');
         const res = await medusaRequest({
           method: 'GET',
-          path: `/products?category_id[]=${catId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
+          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
           tags: ['products']
         });
         if (res?.body?.products) {
@@ -484,7 +473,6 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
             .map((p: MedusaProduct) => reshapeProduct(p));
           relatedProducts = [...relatedProducts, ...categoryProducts];
         }
-        if (relatedProducts.length >= 5) break;
       }
     }
 

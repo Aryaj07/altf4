@@ -76,16 +76,27 @@ export default function MobileMenu({ menu }: { menu: Menu[] }) {
                 </div>
                 {menu?.length ? (
                   <ul className="flex w-full flex-col">
-                    {menu.map((item: Menu) => (
-                      <li
-                        className="py-2 text-xl text-black transition-colors hover:text-neutral-500 dark:text-white"
-                        key={item.title}
-                      >
-                        <Link href={item.path} onClick={closeMobileMenu}>
-                          {item.title}
-                        </Link>
-                      </li>
-                    ))}
+                    {menu.map((item: Menu) => {
+                      const isActive = pathname === item.path;
+                      return (
+                        <li
+                          className={`py-2 text-xl transition-colors ${
+                            isActive
+                              ? 'font-semibold text-blue-600 dark:text-blue-400'
+                              : 'text-black hover:text-neutral-500 dark:text-white'
+                          }`}
+                          key={item.title}
+                        >
+                          <Link
+                            href={item.path}
+                            onClick={closeMobileMenu}
+                            aria-current={isActive ? 'page' : undefined}
+                          >
+                            {item.title}
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : null}
               </div>

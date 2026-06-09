@@ -12,13 +12,60 @@ export function Gallery({
 }: {
   images: { src: string; altText: string }[];
   currentIndex?: number;
-  onIndexChange?: (index: number) => void;
+  onIndexChange?: (_index: number) => void;
 }) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]));
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const touchMovedRef = useRef(false);
+
+  // NOTE: all hooks must run unconditionally before any early return,
+  // otherwise the hook count changes when `images` is empty (Rules of Hooks).
+  const imageCount = images?.length ?? 0;
+  const imageIndex = imageCount > 0 ? Math.min(currentIndex, imageCount - 1) : 0;
+
+  // Preload adjacent images (and the rest in the background)
+  useEffect(() => {
+    if (imageCount === 0) return;
+
+    setLoadedImages((prev) => {
+      const toPreload = new Set(prev);
+      toPreload.add(imageIndex);
+      // Preload next and previous
+      if (imageCount > 1) {
+        toPreload.add((imageIndex + 1) % imageCount);
+        toPreload.add(imageIndex === 0 ? imageCount - 1 : imageIndex - 1);
+      }
+      return toPreload;
+    });
+
+    // Preload all remaining in background
+    const timer = setTimeout(() => {
+      setLoadedImages((prev) => {
+        const all = new Set(prev);
+        for (let i = 0; i < imageCount; i++) all.add(i);
+        return all;
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [imageIndex, imageCount]);
+
+  const goTo = useCallback(
+    (index: number) => {
+      onIndexChange?.(index);
+    },
+    [onIndexChange]
+  );
+
+  const goNext = useCallback(() => {
+    goTo(imageIndex + 1 < imageCount ? imageIndex + 1 : 0);
+  }, [goTo, imageIndex, imageCount]);
+
+  const goPrev = useCallback(() => {
+    goTo(imageIndex === 0 ? imageCount - 1 : imageIndex - 1);
+  }, [goTo, imageIndex, imageCount]);
 
   if (!images?.length) {
     return (
@@ -29,39 +76,6 @@ export function Gallery({
       </div>
     );
   }
-
-  const imageIndex = Math.min(currentIndex, images.length - 1);
-
-  // Preload adjacent images
-  useEffect(() => {
-    const toPreload = new Set(loadedImages);
-    toPreload.add(imageIndex);
-    // Preload next and previous
-    if (images.length > 1) {
-      toPreload.add((imageIndex + 1) % images.length);
-      toPreload.add(imageIndex === 0 ? images.length - 1 : imageIndex - 1);
-    }
-    // Preload all remaining in background
-    const timer = setTimeout(() => {
-      images.forEach((_, i) => toPreload.add(i));
-      setLoadedImages(new Set(toPreload));
-    }, 1000);
-
-    setLoadedImages(new Set(toPreload));
-    return () => clearTimeout(timer);
-  }, [imageIndex, images.length]);
-
-  const goTo = (index: number) => {
-    onIndexChange?.(index);
-  };
-
-  const goNext = useCallback(() => {
-    goTo(imageIndex + 1 < images.length ? imageIndex + 1 : 0);
-  }, [imageIndex, images.length]);
-
-  const goPrev = useCallback(() => {
-    goTo(imageIndex === 0 ? images.length - 1 : imageIndex - 1);
-  }, [imageIndex, images.length]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
