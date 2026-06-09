@@ -81,10 +81,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     url: baseUrl,
     logo: `${baseUrl}/static/logo.svg`,
     sameAs: [
-      // Add your social media profiles here
-      // 'https://www.facebook.com/altf4gear',
-      // 'https://twitter.com/altf4gear',
-      // 'https://www.instagram.com/altf4gear',
+      'https://www.instagram.com/altf4gear/',
+      'https://discord.gg/ZSJhnsrxtY',
     ],
     contactPoint: {
       '@type': 'ContactPoint',
