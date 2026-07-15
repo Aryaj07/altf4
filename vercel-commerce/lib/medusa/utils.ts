@@ -124,11 +124,12 @@ export const reshapeLineItem = (lineItem: MedusaLineItem, currency_code: string)
 
 export const reshapeImages = (images?: MedusaImage[], productTitle?: string): Image[] => {
   if (!images) return [];
-  return images.map((image) => {
-    const filename = image.url.match(/.*\/(.*)\..*/)![1];
+  // Alt text must be human-readable — raw upload filenames leaked into
+  // Google search snippets when products had no meta description.
+  return images.map((image, i) => {
     return {
       ...image,
-      altText: `${productTitle} - ${filename}`
+      altText: i === 0 ? `${productTitle}` : `${productTitle} - view ${i + 1}`
     };
   });
 };

@@ -47,14 +47,19 @@ function getAvailability(variant: any): string {
     new Date(preorder.available_date) > new Date();
 
   if (isPreorder) return 'preorder';
-  if (variant?.allow_backorder) return 'backorder';
 
+  // Actual stock wins: allow_backorder only matters once stock runs out,
+  // otherwise every backorder-enabled variant shows "backorder" in Google
+  // Shopping while the website sells it as in stock.
   const qty = variant?.inventory_quantity;
   const manages = variant?.manage_inventory;
-  if (manages === true) {
-    return (typeof qty === 'number' && qty > 0) ? 'in_stock' : 'out_of_stock';
+  if (manages !== true) {
+    return 'in_stock'; // Not tracking inventory = available
   }
-  return 'in_stock'; // Not tracking inventory = available
+  if (typeof qty === 'number' && qty > 0) {
+    return 'in_stock';
+  }
+  return variant?.allow_backorder ? 'backorder' : 'out_of_stock';
 }
 
 function getPrice(variant: any): number {

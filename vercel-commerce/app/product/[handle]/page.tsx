@@ -41,9 +41,15 @@ export async function generateMetadata({
     const indexable = !product.tags.includes(HIDDEN_PRODUCT_TAG);
     
     // Strip HTML tags from description for meta tags
-    const cleanDescription = product.description
+    const stripped = product.description
       ? product.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-      : product.title;
+      : '';
+    // Fallback for products without a description — a bare title gets
+    // ignored by Google, which then scrapes arbitrary page text for the
+    // snippet. Cap at ~160 chars either way.
+    const category = (product as any).categories?.[0]?.name;
+    const fallback = `Buy ${product.title}${category ? ` — ${category.toLowerCase()}` : ''} at Altf4gear. Premium gaming gear with GST invoice, fast shipping across India.`;
+    const cleanDescription = (stripped.length >= 30 ? stripped : fallback).slice(0, 160);
     
     const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL;
     const productUrl = `${baseUrl}/product/${product.handle}`;
