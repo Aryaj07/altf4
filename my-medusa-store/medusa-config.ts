@@ -74,6 +74,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/preorder",
     },
     {
+      resolve: "./src/modules/checkout-insights",
+    },
+    {
       resolve: "./src/modules/product-description",
     },
     {

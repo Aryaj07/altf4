@@ -1,4 +1,4 @@
-import { defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http"
+import { authenticate, defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http"
 import type { MedusaNextFunction, MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { UpsertPreorderVariantSchema } from "./admin/variants/[id]/preorders/route"
 import { SearchSchema } from "./store/products/search/route"
@@ -7,9 +7,26 @@ import { PostInvoiceConfgSchema } from "./admin/invoice-config/route"
 import * as fs from "fs"
 import * as path from "path"
 import multer from "multer"
+import { logPaymentInitiated } from "./utils/log-payment-initiated"
 
 export default defineMiddlewares({
   routes: [
+    {
+      // Raw body needed for Razorpay webhook signature verification
+      matcher: "/hooks/razorpay-insights",
+      method: ["POST"],
+      bodyParser: { preserveRawBody: true },
+    },
+    {
+      matcher: "/store/payment-collections/:id/payment-sessions",
+      methods: ["POST"],
+      middlewares: [logPaymentInitiated],
+    },
+    {
+      matcher: "/store/customers/me/active-cart",
+      method: ["GET"],
+      middlewares: [authenticate("customer", ["bearer", "session"])],
+    },
         {
       matcher: "/admin/invoice-config",
       methods: ["POST"],

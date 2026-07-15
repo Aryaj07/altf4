@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createCart, getCart } from "lib/medusa";
+import { getCart } from "lib/medusa";
 import { NextResponse } from "next/server";
 import { sdkServer } from "@/lib/sdk/sdk-server";
 
@@ -16,66 +16,52 @@ export async function GET() {
       cart = await getCart(cartId);
       console.log("Existing cart retrieved:", cart?.id);
     } catch (err) {
-      console.log("Failed to retrieve cart, will create new one:", String(err));
+      console.log("Failed to retrieve cart, clearing cookie:", String(err));
       // If cart retrieval fails, clear the invalid cookie
       cookieStore.delete("cartId");
     }
   }
 
-  // Only create a new cart if we don't have a valid existing one
-  if (!cart) {
-    console.log("Creating new cart...");
-    cart = await createCart();
-    
-    // Attempt to read the current customer. For anonymous requests this
-    // may throw (401) — guard it so we still can create a cart for
-    // first-time visitors.
-    let cust = null;
-    try {
-      cust = await sdkServer.store.customer.retrieve();
-      console.log("Customer retrieved:", !!cust?.customer?.id);
-    } catch (err) {
-      console.log('No authenticated customer or error retrieving customer:', String(err));
-      cust = null;
-    }
-
-    if (!cart?.id) {
-      return NextResponse.json(
-        { error: "Cart ID is undefined." },
-        { status: 500 }
-      );
-    }
-
-    // If customer is logged in, transfer the cart to the customer
-    if (cust?.customer?.id) {
+  // If the cart belongs to a customer, make sure it belongs to the customer
+  // of THIS session. A leftover cookie from a previous user on the same
+  // browser must not expose (or later hijack) their cart.
+  if (cart?.customer_id) {
+    const token = cookieStore.get("auth_token")?.value;
+    let owned = false;
+    if (token) {
       try {
-        const res = await sdkServer.store.cart.transferCart(cart?.id);
-        console.log("Cart transferred successfully", res?.cart?.customer_id);
-      } catch (err) {
-        console.log('Failed to transfer cart to customer:', String(err));
+        const { customer } = await sdkServer.store.customer.retrieve(
+          {},
+          { Authorization: `Bearer ${token}` }
+        );
+        owned =
+          customer.id === cart.customer_id ||
+          (!!cart.email && cart.email === customer.email);
+      } catch {
+        owned = false;
+      }
+      if (!owned) {
+        console.log("Cart belongs to a different customer, clearing cookie:", cart.id);
+        cookieStore.delete("cartId");
+        cart = null;
       }
     }
+    // No token: guest checkout sets a guest-customer on the cart once an
+    // email is entered, so an anonymous session with a customer-linked cart
+    // is normal — leave it. Logout clears the cookie for real customers.
+  }
 
-    // Set cartId in cookies with proper expiration
-    if (cart?.id) {
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 30); // 30 days from now
-      
-      cookieStore.set("cartId", cart.id ?? "", {
-        expires: expiryDate,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/'
-      });
-      
-      console.log("New cart created and cookie set:", cart.id, "expires:", expiryDate);
-    } else {
-      return NextResponse.json(
-        { error: "Failed to create a new cart." },
-        { status: 500 }
-      );
-    }
+  // No valid cart: do NOT create one here. Carts are created lazily by
+  // /api/cart/add-item on the first add-to-cart. Creating them on GET meant
+  // every cookie-less visit (incl. bots/crawlers) produced an empty cart in
+  // the backend.
+  if (!cart) {
+    return NextResponse.json(null, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    });
   } else {
     // Refresh the existing cart cookie expiration
     const expiryDate = new Date();

@@ -96,7 +96,7 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
             const cartCheckRes = await fetch(`/api/cart?cart_id=${cart.id}`);
             const cartData = await cartCheckRes.json();
             
-            const itemsToCheck = cartData.items || [];
+            const itemsToCheck = cartData?.items || [];
             const hasPreorderItems = itemsToCheck.some((item: any) => 
               item.variant?.preorder_variant?.status === 'enabled'
             );

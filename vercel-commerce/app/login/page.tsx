@@ -23,11 +23,13 @@ import { useState } from "react"
 import Link from "next/link"
 
 import { useRouter } from "next/navigation"
+import { useCart } from "components/cart/cart-context"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { refreshCart } = useCart()
 
   const form = useForm<LoginFormData>({
     validate: customZodResolver(loginSchema),
@@ -56,17 +58,32 @@ export default function LoginPage() {
       }
       const { customer } = await res.json();
 
-      // Optionally transfer cart if needed (if you want to keep this logic)
+      // Cart handoff on login:
+      // - guest cart with items on this device → /api/cart/merge claims it,
+      //   and if the customer also has a saved cart elsewhere, combines the
+      //   two into the saved cart
+      // - otherwise → restore the customer's saved open cart from the
+      //   backend, so the same cart follows them across devices/browsers
       const cartResponse = await fetch(`/api/cart`);
       const cartData = await cartResponse.json();
-      const cartId = cartData.id;
-      console.log("Cart ID:", cartId);
+      const cartId = cartData?.id;
+      const hasItems = (cartData?.totalQuantity ?? 0) > 0;
+      console.log("Cart ID:", cartId, "items:", cartData?.totalQuantity ?? 0);
 
-      await fetch("/api/cart/transfer-cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cartId }),
-      });
+      if (cartId && hasItems) {
+        await fetch("/api/cart/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cartId }),
+        });
+      } else {
+        await fetch("/api/cart/restore", { method: "POST" });
+      }
+
+      // Refresh the cart context so the restored/merged cart shows up
+      // immediately — router.push is a client-side navigation, so without
+      // this the header cart kept its pre-login state until a full reload.
+      await refreshCart();
 
       console.log("Login successful:", customer);
 

@@ -15,9 +15,9 @@ export default function Cart() {
 
   if (!isClient) return null; // Prevent hydration mismatch
 
-  if (!cart) return <div>Loading cart...</div>;
-
+  // cart is null until the first item is added — CartModal renders the
+  // empty-cart state for undefined.
   return (
-    <CartModal cart={cart} />
+    <CartModal cart={cart ?? undefined} />
   );
 }

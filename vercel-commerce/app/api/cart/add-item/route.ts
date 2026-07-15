@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { addToCart, createCart, getCart } from "lib/medusa";
 import { NextResponse } from "next/server";
+import { sdkServer } from "@/lib/sdk/sdk-server";
 
 export async function POST(req: Request) {
   const { variantId } = await req.json();
@@ -16,7 +17,30 @@ export async function POST(req: Request) {
   if (!cartId || !cart) {
     cart = await createCart();
     cartId = cart?.id!;
-    cookieStore.set("cartId", cartId);
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
+    cookieStore.set("cartId", cartId, {
+      expires: expiryDate,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    // If the customer is logged in, attach the new cart to them right away
+    // (carts are only created here now, so this replaces the transfer that
+    // used to happen in GET /api/cart).
+    const token = cookieStore.get("auth_token")?.value;
+    if (token) {
+      try {
+        await sdkServer.store.cart.transferCart(cartId, undefined, {
+          Authorization: `Bearer ${token}`,
+        });
+        console.log("New cart transferred to logged-in customer:", cartId);
+      } catch (err) {
+        console.log("Failed to transfer new cart to customer:", String(err));
+      }
+    }
   }
 
   if (!variantId) {

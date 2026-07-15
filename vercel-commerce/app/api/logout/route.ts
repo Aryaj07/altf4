@@ -10,5 +10,14 @@ export async function POST() {
     path: "/",
     maxAge: 0,
   });
+  // Also drop the cart cookie — the cart belongs to the customer who just
+  // logged out. Leaving it meant the next person on this browser inherited
+  // (and on login, hijacked) the previous customer's cart.
+  response.cookies.set({
+    name: "cartId",
+    value: "",
+    path: "/",
+    maxAge: 0,
+  });
   return response;
 }
