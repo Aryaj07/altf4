@@ -10,7 +10,7 @@ import Banner from 'components/layout/navbar/banner';
 import Script from 'next/script';
 
 
-const { TWITTER_CREATOR, TWITTER_SITE, SITE_NAME } = process.env;
+const { TWITTER_CREATOR, TWITTER_SITE, SITE_NAME, NEXT_PUBLIC_GA_MEASUREMENT_ID } = process.env;
 const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
 
 const siteDescription = 'Premium gaming peripherals and accessories. Shop high-performance keyboards, mice, and gaming gear at Altf4. Fast shipping across India.';
@@ -141,6 +141,22 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           data-site-id="e6f0595e69c5"
           strategy="afterInteractive"
         />
+        {NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${NEXT_PUBLIC_GA_MEASUREMENT_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );
