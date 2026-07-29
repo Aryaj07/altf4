@@ -1,6 +1,7 @@
 import { MedusaService } from "@medusajs/framework/utils"
 import { PaymentAttempt, PaymentAttemptStatus } from "./models/payment-attempt"
 import { RecoveryEmail } from "./models/recovery-email"
+import { OrderUpdateEmail } from "./models/order-update-email"
 
 type LogAttemptInput = {
   cart_id?: string | null
@@ -16,9 +17,20 @@ type LogAttemptInput = {
   raw_payload?: Record<string, unknown> | null
 }
 
+type OrderUpdateEmailRow = {
+  order_id: string
+  order_display_id?: string | null
+  customer_id?: string | null
+  email: string
+  subject: string
+  message: string
+  html: string
+}
+
 export default class CheckoutInsightsModuleService extends MedusaService({
   PaymentAttempt,
   RecoveryEmail,
+  OrderUpdateEmail,
 }) {
   /**
    * Idempotent append: webhooks may be retried by Razorpay, so an
@@ -66,6 +78,19 @@ export default class CheckoutInsightsModuleService extends MedusaService({
 
     return await this.updatePaymentAttempts(
       attempts.map((a) => ({ id: a.id, order_id }))
+    )
+  }
+
+  /**
+   * Records one row per recipient of a bulk order-update send, all sharing
+   * the same batch_id so the admin history view can group them.
+   */
+  async logOrderUpdateEmails(batch_id: string, rows: OrderUpdateEmailRow[]) {
+    if (!rows.length) {
+      return []
+    }
+    return await this.createOrderUpdateEmails(
+      rows.map((row) => ({ ...row, batch_id }))
     )
   }
 }
