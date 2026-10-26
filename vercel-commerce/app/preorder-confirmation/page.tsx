@@ -24,13 +24,15 @@ export default function PreorderConfirmationPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (orderId) {
-      fetch(`/api/order-details/order-confirmation/${orderId}`)
-        .then((res) => res.json())
-        .then((data) => setOrder(data))
-        .catch(() => setOrder(null))
-        .finally(() => setLoading(false));
+    if (!orderId) {
+      setLoading(false);
+      return;
     }
+    fetch(`/api/order-details/order-confirmation/${orderId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setOrder(data?.id ? data : null))
+      .catch(() => setOrder(null))
+      .finally(() => setLoading(false));
   }, [orderId]);
 
   // Helper for formatting money (Medusa amounts are in smallest currency unit)

@@ -14,6 +14,7 @@ import {
 import { IconMail, IconInfoCircle, IconCheck } from "@tabler/icons-react"
 import { useState } from "react"
 import Link from "next/link"
+import { normalizeEmail } from "lib/auth-schema"
 
 const MEDUSA_BACKEND = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API || '';
 
@@ -37,7 +38,7 @@ export default function ForgotPasswordPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ identifier: email }),
+          body: JSON.stringify({ identifier: normalizeEmail(email) }),
         }
       )
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import medusaRequest from "lib/medusa";
+import { normalizeEmail } from "lib/auth-schema";
 
 // POST /api/cart/update-email to update cart email
 export async function POST(req: Request) {
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
     const res = await medusaRequest({
       method: 'POST',
       path: `/carts/${cartId}`,
-      payload: { email },
+      payload: { email: normalizeEmail(email) },
       tags: ['cart']
     });
     return NextResponse.json({ cart: res.body.cart });

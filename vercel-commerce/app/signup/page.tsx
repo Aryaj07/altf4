@@ -17,7 +17,7 @@ import {
 } from "@mantine/core"
 import { useForm } from "@mantine/form"
 import { customZodResolver } from "lib/resolver"
-import { signupSchema, type SignupFormData } from "lib/auth-schema"
+import { normalizeEmail, signupSchema, type SignupFormData } from "lib/auth-schema"
 import {
   IconMail,
   IconLock,
@@ -57,16 +57,18 @@ export default function SignupPage() {
     setError(null);
 
     try {
+      const email = normalizeEmail(values.email);
+
       // Register the customer
       const token = await sdk.auth.register("customer", "emailpass", {
-        email: values.email,
+        email,
         password: values.password,
       });
 
       // Create the customer profile
       const { customer } = await sdk.store.customer.create(
         {
-          email: values.email,
+          email,
           first_name: values.firstName,
           last_name: values.lastName,
           phone: values.phone,

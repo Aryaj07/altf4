@@ -15,6 +15,7 @@ import { IconLock, IconInfoCircle, IconCheck } from "@tabler/icons-react"
 import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { normalizeEmail } from "lib/auth-schema"
 
 const MEDUSA_BACKEND = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_API || '';
 
@@ -72,7 +73,7 @@ function ResetPasswordForm() {
             "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify({
-            email,
+            email: normalizeEmail(email),
             password,
           }),
         }

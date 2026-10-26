@@ -5,7 +5,7 @@ import React, { useCallback, useState } from "react";
 import { useRazorpay, RazorpayOrderOptions } from "react-razorpay";
 import { CurrencyCode } from "react-razorpay/dist/constants/currency";
 import { useRouter } from "next/navigation";
-import { useCart } from "components/cart/cart-context";
+import { PENDING_ORDER_CART_KEY } from "lib/finalize-order";
 
 interface RazorpayButtonProps {
   cart: {
@@ -28,7 +28,6 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
   const { Razorpay } = useRazorpay();
 
   const router = useRouter();
-  const { refreshCart, setSuppressAutoOpen } = useCart();
 
   const handlePayment = useCallback(async () => {
     setSubmitting(true);
@@ -77,7 +76,7 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
         currency: cart.currency_code.toUpperCase() as CurrencyCode,
         name: process.env.COMPANY_NAME || 'Altf4',
         description: `Order #${razorpayOrder.id}`,
-        callback_url: `${typeof window !== 'undefined' ? window.location.origin : ''}/payment-return`,
+        callback_url: `${typeof window !== 'undefined' ? window.location.origin : ''}/api/payment/razorpay-callback`,
         image: "https://example.com/your_logo",
         prefill: {
           name: `${cart.billing_address?.first_name ?? ""} ${cart.billing_address?.last_name ?? ""}`,
@@ -90,100 +89,26 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
             setErrorMessage("Payment cancelled.");
           },
         },
-        handler: async function () {
-          try {
-            // Check if cart has preorder items
-            const cartCheckRes = await fetch(`/api/cart?cart_id=${cart.id}`);
-            const cartData = await cartCheckRes.json();
-            
-            const itemsToCheck = cartData?.items || [];
-            const hasPreorderItems = itemsToCheck.some((item: any) => 
-              item.variant?.preorder_variant?.status === 'enabled'
-            );
-
-            // Use appropriate endpoint based on cart contents
-            const completeEndpoint = hasPreorderItems 
-              ? "/api/cart/complete-preorder" 
-              : "/api/cart/complete-cart";
-
-            const completeRes = await fetch(completeEndpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                cart_id: cart.id,
-              }),
-            });
-
-            const completeData = await completeRes.json();
-            const orderId = completeData.order?.id;
-
-            if (completeRes.ok && completeData.success && completeData.order) {
-              const orderDetailsRes = await fetch(`/api/order?order_id=${orderId}`);
-              const orderDetailsData = await orderDetailsRes.json();
-
-              const capturedPayment = await fetch("/api/payment/capture-payment", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  paymentId: orderDetailsData.paymentId,
-                }),
-              })
-              
-              await capturedPayment.json();
-              await fetch("/api/cart/remove-cart", { method: "POST" });
-
-              setSuppressAutoOpen(true);
-
-              if (typeof window !== "undefined") {
-                const keysToClear = [
-                  "paymentCollectionId",
-                  "paymentStepLocked",
-                  "selectedPaymentProviderId",
-                  "selectedShippingOptionAmount",
-                  "selectedShippingOptionDescription",
-                  "selectedShippingOptionId",
-                  "selectedShippingOptionName",
-                  "shippingLocked",
-                  "shippingStepLocked",
-                  "updateEmailLocked",
-                  "cart",
-                ];
-
-                keysToClear.forEach((key) => {
-                  window.sessionStorage.removeItem(key);
-                });
-              }
-
-              await refreshCart();
-              setSuppressAutoOpen(false);
-
-              // Redirect to appropriate confirmation page
-              const confirmationPage = hasPreorderItems 
-                ? `/preorder-confirmation?orderId=${completeData.order.id}`
-                : `/order-confirmation?orderId=${completeData.order.id}`;
-              router.push(confirmationPage);
-            } else {
-              console.error("❌ Cart completion failed:", completeData);
-              alert("Failed to complete your order.");
-            }
-          } catch (err) {
-            console.error("❌ Error completing cart:", err);
-            alert("Unexpected error completing order.");
-          }
-
-          setSubmitting(false);
+        // Popup flow: Razorpay calls this after a successful payment. Both this
+        // and the redirect flow (callback_url) finish on /payment-return, which
+        // completes the cart and shows the confirmation page.
+        handler: function (response: any) {
+          const params = new URLSearchParams({
+            razorpay_payment_id: response?.razorpay_payment_id ?? "",
+            razorpay_order_id: response?.razorpay_order_id ?? razorpayOrder.id,
+          });
+          router.replace(`/payment-return?${params.toString()}`);
         },
       };
+
+      // Lets /payment-return find the cart even if the cart cookie is missing.
+      window.sessionStorage.setItem(PENDING_ORDER_CART_KEY, cart.id);
 
       const razorpay = new Razorpay(options);
       razorpay.open();
 
       razorpay.on("payment.failed", function (response: any) {
-        setErrorMessage(JSON.stringify(response.error));
+        setErrorMessage(response?.error?.description || "Payment failed. Please try again.");
         setSubmitting(false);
       });
     } catch (err: any) {
@@ -199,8 +124,6 @@ const RazorpayButton: React.FC<RazorpayButtonProps> = ({
     cart.email,
     cart.shipping_address?.phone,
     cart.id,
-    refreshCart,
-    setSuppressAutoOpen,
     router,
   ]);
 

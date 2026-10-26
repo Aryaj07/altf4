@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server"
 import { cookies } from "next/headers"
 import { sdk } from "@/lib/sdk/sdk"
 import { sdkServer } from "@/lib/sdk/sdk-server"
+import { normalizeEmail } from "@/lib/auth-schema"
 
 // POST: login
 export async function POST(req: NextRequest) {
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     const { email, password } = await req.json()
     // Authenticate with Medusa
     const token = await sdk.auth.login("customer", "emailpass", {
-      email,
+      email: normalizeEmail(email),
       password,
     })
     if (typeof token !== "string") {

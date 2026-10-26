@@ -9,8 +9,57 @@ import * as path from "path"
 import multer from "multer"
 import { logPaymentInitiated } from "./utils/log-payment-initiated"
 
+// Emails are case-insensitive. Lowercase them before Medusa stores or looks
+// them up, so "Name@Gmail.com" and "name@gmail.com" are the same account.
+// Core validators may already have populated validatedBody, so update both.
+const normalizeEmailFields = (
+  req: MedusaRequest,
+  res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  for (const body of [req.body, (req as any).validatedBody]) {
+    if (!body || typeof body !== "object") continue
+    for (const key of ["email", "identifier"]) {
+      if (typeof body[key] === "string") {
+        body[key] = body[key].trim().toLowerCase()
+      }
+    }
+  }
+  next()
+}
+
 export default defineMiddlewares({
   routes: [
+    {
+      matcher: "/auth/customer/emailpass",
+      method: ["POST"],
+      middlewares: [normalizeEmailFields],
+    },
+    {
+      matcher: "/auth/customer/emailpass/register",
+      method: ["POST"],
+      middlewares: [normalizeEmailFields],
+    },
+    {
+      matcher: "/auth/customer/emailpass/reset-password",
+      method: ["POST"],
+      middlewares: [normalizeEmailFields],
+    },
+    {
+      matcher: "/store/customers",
+      method: ["POST"],
+      middlewares: [normalizeEmailFields],
+    },
+    {
+      matcher: "/store/customers/me",
+      method: ["POST"],
+      middlewares: [normalizeEmailFields],
+    },
+    {
+      matcher: "/store/carts/:id",
+      method: ["POST"],
+      middlewares: [normalizeEmailFields],
+    },
     {
       // Raw body needed for Razorpay webhook signature verification
       matcher: "/hooks/razorpay-insights",

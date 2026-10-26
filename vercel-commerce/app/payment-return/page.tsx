@@ -2,22 +2,31 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Container, Title, Text, Loader, Stack, Alert } from "@mantine/core";
+import Link from "next/link";
+import { Container, Title, Text, Loader, Stack, Alert, Group, Button } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
+import { useCart } from "components/cart/cart-context";
+import {
+  cartHasPreorderItems,
+  finalizeOrder,
+  PENDING_ORDER_CART_KEY,
+} from "lib/finalize-order";
 
 /**
  * Payment Return Page
  * 
- * Razorpay redirects users here after completing payment via redirect methods
- * (netbanking, UPI intent, etc.). This page completes the order on Medusa
- * and redirects to the confirmation page.
+ * Every successful Razorpay payment ends here: the popup handler navigates
+ * here directly, and redirect methods (netbanking, UPI intent, etc.) arrive
+ * via /api/payment/razorpay-callback, which turns Razorpay's POST into a GET.
+ * This page completes the order on Medusa and redirects to the confirmation page.
  * 
- * Razorpay sends: razorpay_payment_id, razorpay_order_id, razorpay_signature
- * as query params on success, or error params on failure.
+ * Query params: razorpay_payment_id, razorpay_order_id, razorpay_signature
+ * on success, or error[...] params on failure.
  */
 export default function PaymentReturnPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refreshCart, setSuppressAutoOpen } = useCart();
   const [status, setStatus] = useState<"loading" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const hasRun = useRef(false);
@@ -52,91 +61,42 @@ export default function PaymentReturnPage() {
 
     async function completeOrder() {
       try {
-        // Get cart ID from cookie-based API
+        // Cart from the cookie; fall back to the id saved before opening Razorpay.
         const cartRes = await fetch("/api/cart");
-        const cartData = await cartRes.json();
-        const cartId = cartData?.id;
+        const cartData = await cartRes.json().catch(() => null);
+        const cartId =
+          cartData?.id || window.sessionStorage.getItem(PENDING_ORDER_CART_KEY);
 
         if (!cartId) {
           setStatus("error");
-          setErrorMessage("Could not find your cart. Your payment was received — please contact support with your Razorpay payment ID: " + razorpayPaymentId);
+          setErrorMessage(
+            "Your payment was received. If your order was placed you will get a confirmation email shortly, and it will appear under your orders. Razorpay payment ID: " +
+              razorpayPaymentId
+          );
           return;
         }
 
-        // Check for preorder items
-        const items = cartData.items || [];
-        const hasPreorderItems = items.some((item: any) =>
-          item.variant?.preorder_variant?.status === "enabled"
-        );
+        const result = await finalizeOrder(cartId, cartHasPreorderItems(cartData));
 
-        // Complete the cart
-        const completeEndpoint = hasPreorderItems
-          ? "/api/cart/complete-preorder"
-          : "/api/cart/complete-cart";
+        if (result.ok) {
+          setSuppressAutoOpen(true);
+          await refreshCart();
+          setSuppressAutoOpen(false);
 
-        const completeRes = await fetch(completeEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart_id: cartId }),
-        });
-
-        const completeData = await completeRes.json();
-
-        if (completeRes.ok && completeData.success && completeData.order) {
-          const orderId = completeData.order.id;
-
-          // Capture payment
-          try {
-            const orderDetailsRes = await fetch(`/api/order?order_id=${orderId}`);
-            const orderDetailsData = await orderDetailsRes.json();
-
-            if (orderDetailsData.paymentId) {
-              await fetch("/api/payment/capture-payment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ paymentId: orderDetailsData.paymentId }),
-              });
-            }
-          } catch (captureErr) {
-            console.error("Payment capture error (non-blocking):", captureErr);
-          }
-
-          // Clean up cart
-          await fetch("/api/cart/remove-cart", { method: "POST" });
-
-          // Clear session storage
-          if (typeof window !== "undefined") {
-            const keysToClear = [
-              "paymentCollectionId",
-              "paymentStepLocked",
-              "selectedPaymentProviderId",
-              "selectedShippingOptionAmount",
-              "selectedShippingOptionDescription",
-              "selectedShippingOptionId",
-              "selectedShippingOptionName",
-              "shippingLocked",
-              "shippingStepLocked",
-              "updateEmailLocked",
-              "cart",
-            ];
-            keysToClear.forEach((key) => window.sessionStorage.removeItem(key));
-          }
-
-          // Redirect to confirmation
-          const confirmationPage = hasPreorderItems
-            ? `/preorder-confirmation?orderId=${orderId}`
-            : `/order-confirmation?orderId=${orderId}`;
-
-          router.replace(confirmationPage);
+          router.replace(
+            result.isPreorder
+              ? `/preorder-confirmation?orderId=${result.orderId}`
+              : `/order-confirmation?orderId=${result.orderId}`
+          );
         } else {
           setStatus("error");
           setErrorMessage(
-            "Your payment was received but we could not finalize the order. Please contact support with your Razorpay payment ID: " +
-            razorpayPaymentId
+            "Your payment was received but we could not confirm the order yet. If it was placed you will get a confirmation email shortly. Otherwise please contact support with your Razorpay payment ID: " +
+              razorpayPaymentId
           );
         }
       } catch (err) {
-        console.error("Error completing order after redirect:", err);
+        console.error("Error completing order after payment:", err);
         setStatus("error");
         setErrorMessage(
           "An unexpected error occurred. Your payment may have been received — please contact support with your Razorpay payment ID: " +
@@ -144,7 +104,7 @@ export default function PaymentReturnPage() {
         );
       }
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, refreshCart, setSuppressAutoOpen]);
 
   return (
     <Container size="sm" py="xl">
@@ -172,6 +132,16 @@ export default function PaymentReturnPage() {
               {process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support"}.
             </Text>
           </Alert>
+        )}
+        {status === "error" && (
+          <Group>
+            <Button component={Link} href="/dashboard" variant="light">
+              View my orders
+            </Button>
+            <Button component={Link} href="/checkout" variant="subtle">
+              Back to checkout
+            </Button>
+          </Group>
         )}
       </Stack>
     </Container>
