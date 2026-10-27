@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { sdkServeradmin } from "lib/sdk/sdk-server-admin";
+import { cookies } from "next/headers";
+import { sdkServer } from "lib/sdk/sdk-server";
 
 /**
  * GET /api/order-tracking?order_id=order_xxx
- * 
- * Fetches fulfillment and tracking details for a specific order
- * using the admin SDK (which has access to fulfillment data).
+ *
+ * Fetches fulfillment and tracking details for one of the logged-in
+ * customer's orders. The store order list only returns orders that belong
+ * to the customer of the auth_token cookie, so other orders aren't found.
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -18,11 +20,22 @@ export async function GET(req: Request) {
     );
   }
 
+  const cookieStore = await cookies();
+  if (!cookieStore.get("auth_token")?.value) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   try {
-    const { order } = await sdkServeradmin.admin.order.retrieve(orderId, {
+    const { orders } = await sdkServer.store.order.list({
+      id: orderId,
       fields:
-        "+fulfillments.*,+fulfillments.labels.*,+fulfillments.items.*",
+        "+fulfillment_status,+*fulfillments,+*fulfillments.labels,+*fulfillments.items",
     });
+    const order = orders[0];
+
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
 
     // Extract tracking info from fulfillments
     const fulfillments = (order as any)?.fulfillments || [];
@@ -30,13 +43,13 @@ export async function GET(req: Request) {
     const trackingDetails = fulfillments.map((fulfillment: any) => {
       const labels = fulfillment.labels || [];
 
-      // Each label can have tracking_number, tracking_url, label_url
+      // Only the AWB number and courier tracking link are shown to the
+      // customer; label_url (the shipping label) stays internal.
       const trackingNumbers = labels
         .filter((label: any) => label.tracking_number)
         .map((label: any) => ({
           tracking_number: label.tracking_number,
           tracking_url: label.tracking_url || null,
-          label_url: label.label_url || null,
         }));
 
       return {
@@ -76,10 +89,7 @@ export async function GET(req: Request) {
   } catch (error: any) {
     console.error("Error fetching order tracking:", error);
     return NextResponse.json(
-      {
-        error: "Failed to fetch tracking details",
-        details: error?.message || "Unknown error",
-      },
+      { error: "Failed to fetch tracking details" },
       { status: 500 }
     );
   }

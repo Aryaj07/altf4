@@ -57,26 +57,10 @@ export default function CodButton({ cart }: { cart: any }) {
       });
 
       const completeData = await completeRes.json();
-      const orderId = completeData.order?.id;
 
       if (completeRes.ok && completeData.success && completeData.order) {
-
-
-        const orderDetailsRes = await fetch(`/api/order?order_id=${orderId}`);
-        const orderDetailsData = await orderDetailsRes.json();
-
-        const capturedPayment = await fetch("/api/payment/capture-payment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            paymentId: orderDetailsData.paymentId,
-          }),
-        })
-        
-        await capturedPayment.json();
-
+        // COD payments stay uncaptured until the cash is collected; they are
+        // marked paid from the admin, never from the browser.
         await fetch("/api/cart/remove-cart", { method: "POST" });
 
         if (typeof window !== "undefined") {

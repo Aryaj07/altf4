@@ -49,6 +49,18 @@ export default defineMiddlewares({
       matcher: "/store/orders/:id",
       middlewares: [allowFields("items.variant.preorder_variant")],
     },
+    // The order list only returns the logged-in customer's orders, so the
+    // storefront reads single orders (confirmation, tracking) through it.
+    {
+      matcher: "/store/orders",
+      middlewares: [
+        allowFields(
+          "items.variant.preorder_variant",
+          "fulfillments.labels",
+          "fulfillments.items"
+        ),
+      ],
+    },
     {
       matcher: "/auth/customer/emailpass",
       method: ["POST"],

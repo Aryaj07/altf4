@@ -7,6 +7,9 @@
 // same moment (the backend then answers 409 / lock errors), and right after
 // payment Razorpay may briefly report the payment as not yet settled
 // (Medusa answers 200 with `type: "cart"` instead of an order).
+//
+// The payment is captured by Razorpay (automatic capture) and marked captured
+// in Medusa by the Razorpay webhook, so nothing is captured from the browser.
 
 export const PENDING_ORDER_CART_KEY = "pendingOrderCartId";
 
@@ -60,7 +63,6 @@ export async function finalizeOrder(
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.order?.id) {
-        await capturePayment(data.order.id);
         await fetch("/api/cart/remove-cart", { method: "POST" }).catch(() => {});
         clearCheckoutSession();
         return { ok: true, orderId: data.order.id, isPreorder };
@@ -76,23 +78,6 @@ export async function finalizeOrder(
   }
 
   return { ok: false, error: lastError };
-}
-
-// Marks the Medusa payment as captured. Non-blocking: the order already
-// exists at this point, and the Razorpay webhook captures it as well.
-async function capturePayment(orderId: string) {
-  try {
-    const orderRes = await fetch(`/api/order?order_id=${orderId}`);
-    const { paymentId } = await orderRes.json();
-    if (!paymentId) return;
-    await fetch("/api/payment/capture-payment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentId }),
-    });
-  } catch (err) {
-    console.error("Payment capture error (non-blocking):", err);
-  }
 }
 
 export function clearCheckoutSession() {

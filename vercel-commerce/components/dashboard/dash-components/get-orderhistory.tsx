@@ -53,7 +53,6 @@ type OrderItem = {
 type TrackingLabel = {
   tracking_number: string;
   tracking_url: string | null;
-  label_url: string | null;
 };
 
 type FulfillmentDetail = {

@@ -512,7 +512,8 @@ export async function getCategoryProducts(
     // Then get all products in this category
     const productRes = await medusaRequest({
       method: 'GET',
-      path: `/products?category_id[]=${category.id}&limit=100&cart_id=${cartId}&fields=+*variants.calculated_price,+*variants.preorder_variant`,
+      // inventory_quantity/manage_inventory/allow_backorder decide the "Sold Out" label
+      path: `/products?category_id[]=${category.id}&limit=100${cartId ? `&cart_id=${cartId}` : ''}&fields=+*variants.calculated_price,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
       tags: ['products']
     });
 
