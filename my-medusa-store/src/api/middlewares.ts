@@ -1,4 +1,4 @@
-import { authenticate, defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http"
+import { allowFields, authenticate, defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http"
 import type { MedusaNextFunction, MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { UpsertPreorderVariantSchema } from "./admin/variants/[id]/preorders/route"
 import { SearchSchema } from "./store/products/search/route"
@@ -30,6 +30,25 @@ const normalizeEmailFields = (
 
 export default defineMiddlewares({
   routes: [
+    // Store routes only return fields on Medusa's allowlist (v2.21+). The
+    // preorder_variant link is ours, so the storefront's requests for it must
+    // be allowed explicitly. These must stay global: no method/methods key.
+    {
+      matcher: "/store/products",
+      middlewares: [allowFields("variants.preorder_variant")],
+    },
+    {
+      matcher: "/store/products/:id",
+      middlewares: [allowFields("variants.preorder_variant")],
+    },
+    {
+      matcher: "/store/carts/:id",
+      middlewares: [allowFields("items.variant.preorder_variant")],
+    },
+    {
+      matcher: "/store/orders/:id",
+      middlewares: [allowFields("items.variant.preorder_variant")],
+    },
     {
       matcher: "/auth/customer/emailpass",
       method: ["POST"],

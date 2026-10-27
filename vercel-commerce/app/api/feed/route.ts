@@ -90,7 +90,7 @@ export async function GET() {
     const regionId = regionData?.regions?.[0]?.id;
 
     // Fetch all products with full variant data
-    let path = '/products?limit=100&fields=+*variants.prices,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder';
+    let path = '/products?limit=100&fields=+*variants.prices,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder';
     if (regionId) path += `&region_id=${regionId}`;
 
     const productData = await medusaFetch(path);

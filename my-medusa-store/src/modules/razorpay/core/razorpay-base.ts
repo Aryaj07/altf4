@@ -1,0 +1,829 @@
+/**
+ * Razorpay payment provider, vendored from medusa-plugin-razorpay-v2
+ * (https://github.com/SGFGOV/medusa-payment-plugins, MIT) so it can follow
+ * Medusa upgrades. Local changes:
+ * - webhooks resolve the Medusa payment session id (the plugin returned
+ *   undefined, which Medusa then matched to an arbitrary session)
+ * - the session id is stamped on the Razorpay order when it is created
+ * - capture/cancel use Razorpay's own amount (already in the smallest unit)
+ * - refunds are rounded to whole paise
+ */
+import {
+    AbstractPaymentProvider,
+    ContainerRegistrationKeys,
+    isDefined,
+    MedusaError,
+    MedusaErrorCodes,
+    MedusaErrorTypes,
+    Modules,
+    PaymentActions,
+    PaymentSessionStatus
+} from "@medusajs/framework/utils";
+import type {
+    AuthorizePaymentInput,
+    AuthorizePaymentOutput,
+    CancelPaymentInput,
+    CancelPaymentOutput,
+    CapturePaymentInput,
+    CapturePaymentOutput,
+    CreateAccountHolderInput,
+    CreateAccountHolderOutput,
+    CustomerDTO,
+    DeleteAccountHolderInput,
+    DeleteAccountHolderOutput,
+    DeletePaymentInput,
+    DeletePaymentOutput,
+    GetPaymentStatusInput,
+    GetPaymentStatusOutput,
+    InitiatePaymentInput,
+    InitiatePaymentOutput,
+    IPaymentModuleService,
+    Logger,
+    MedusaContainer,
+    PaymentCustomerDTO,
+    PaymentSessionDTO,
+    ProviderWebhookPayload,
+    RefundPaymentInput,
+    RefundPaymentOutput,
+    RetrievePaymentInput,
+    RetrievePaymentOutput,
+    UpdateAccountHolderInput,
+    UpdateAccountHolderOutput,
+    UpdatePaymentInput,
+    UpdatePaymentOutput,
+    WebhookActionResult
+} from "@medusajs/framework/types";
+import Razorpay from "razorpay";
+import type { IMap } from "razorpay/dist/types/api";
+import type { Orders } from "razorpay/dist/types/orders";
+import type { Payments } from "razorpay/dist/types/payments";
+import type {
+    Options,
+    RazorpayOptions,
+    RazorpayProviderConfig,
+    WebhookEventData
+} from "../types";
+import {
+    getAmountFromSmallestUnit,
+    getSmallestUnit
+} from "../utils/get-smallest-unit";
+import { updateRazorpayCustomerMetadataWorkflow } from "../workflows/update-razorpay-customer-metadata";
+
+class RazorpayBase extends AbstractPaymentProvider<RazorpayOptions> {
+    protected readonly options_: RazorpayProviderConfig & Options;
+    protected razorpay_: Razorpay;
+    logger: Logger;
+    container_: MedusaContainer;
+
+    paymentService: IPaymentModuleService;
+    constructor(container: MedusaContainer, options) {
+        super(container, options);
+
+        this.options_ = options;
+        this.logger = container[ContainerRegistrationKeys.LOGGER];
+        this.paymentService = container[Modules.PAYMENT];
+
+        this.container_ = container;
+        this.options_ = options;
+
+        this.init();
+    }
+
+    protected init(): void {
+        const provider = this.options_.providers?.find(
+            (p) => p.id === RazorpayBase.identifier
+        );
+        if (!provider && !this.options_.key_id) {
+            throw new MedusaError(
+                MedusaErrorTypes.INVALID_ARGUMENT,
+                "razorpay not configured",
+                MedusaErrorCodes.CART_INCOMPATIBLE_STATE
+            );
+        }
+        this.razorpay_ =
+            this.razorpay_ ||
+            new Razorpay({
+                key_id: this.options_.key_id ?? provider?.options.key_id,
+                key_secret:
+                    this.options_.key_secret ?? provider?.options.key_secret,
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Razorpay-Account":
+                        this.options_.razorpay_account ??
+                        provider?.options.razorpay_account ??
+                        undefined
+                }
+            });
+    }
+
+    static validateOptions(options: RazorpayOptions): void {
+        if (!isDefined(options.key_id)) {
+            throw new MedusaError(
+                MedusaErrorTypes.INVALID_ARGUMENT,
+                "Required option `key_id` is missing in Razorpay plugin"
+            );
+        }
+        if (!isDefined(options.key_secret)) {
+            throw new MedusaError(
+                MedusaErrorTypes.INVALID_ARGUMENT,
+                "Required option `key_secret` is missing in Razorpay plugin"
+            );
+        }
+        if (!isDefined(options.razorpay_account)) {
+            throw new MedusaError(
+                MedusaErrorTypes.INVALID_ARGUMENT,
+                "Required option `razorpay_account` is missing in Razorpay plugin"
+            );
+        }
+        if (!isDefined(options.automatic_expiry_period)) {
+            if (!isDefined(options.manual_expiry_period)) {
+                throw new MedusaError(
+                    MedusaErrorTypes.INVALID_ARGUMENT,
+                    "Required option `manual_expiry_period` is missing in Razorpay plugin"
+                );
+            }
+            throw new MedusaError(
+                MedusaErrorTypes.INVALID_ARGUMENT,
+                "Required option `automatic_expiry_period` is missing in Razorpay plugin"
+            );
+        }
+
+        if (!isDefined(options.webhook_secret)) {
+            throw new MedusaError(
+                MedusaErrorTypes.INVALID_ARGUMENT,
+                "Required option `webhook_secret` is missing in Razorpay plugin"
+            );
+        }
+    }
+
+    async capturePayment(
+        input: CapturePaymentInput
+    ): Promise<CapturePaymentOutput> {
+        const { razorpayOrder, paymentSession } =
+            await this.getPaymentSessionAndOrderFromInput(input);
+        const paymentsResponse = await this.razorpay_.orders.fetchPayments(
+            razorpayOrder.id as string
+        );
+        const possibleCaptures = paymentsResponse.items?.filter(
+            (item) => item.status === "authorized"
+        );
+        const result = possibleCaptures?.map(async (payment) => {
+            const { id, amount, currency } = payment;
+            const paymentCaptured = await this.razorpay_.payments.capture(
+                id,
+                amount,
+                currency as string
+            );
+            return paymentCaptured;
+        });
+        if (result) {
+            const syncResult = await this.syncPaymentSession(
+                paymentSession.id,
+                razorpayOrder.id as string
+            );
+            const returrnedResult: CapturePaymentOutput = {
+                data: {
+                    razorpayOrder: syncResult.razorpayOrder
+                }
+            };
+            return returrnedResult;
+        } else {
+            throw new MedusaError(
+                MedusaError.Types.NOT_FOUND,
+                `No payments found for order ${razorpayOrder.id}`
+            );
+        }
+    }
+    async authorizePayment(
+        input: AuthorizePaymentInput
+    ): Promise<AuthorizePaymentOutput> {
+        const { razorpayOrder, paymentSession } =
+            await this.getPaymentSessionAndOrderFromInput(input);
+
+        const paymentStatusRequest: GetPaymentStatusInput = {
+            ...input
+        };
+        const status = await this.getPaymentStatus(paymentStatusRequest);
+
+        const result = await this.syncPaymentSession(
+            paymentSession.id,
+            razorpayOrder.id as string
+        );
+
+        if (
+            status.status === PaymentSessionStatus.AUTHORIZED &&
+            this.options_.auto_capture
+        ) {
+            status.status = PaymentSessionStatus.CAPTURED;
+        }
+
+        return {
+            data: {
+                razorpayOrder: result.razorpayOrder
+            },
+            status: status.status
+        };
+    }
+    async cancelPayment(
+        input: CancelPaymentInput
+    ): Promise<CancelPaymentOutput> {
+        const { razorpayOrder, paymentSession } =
+            await this.getPaymentSessionAndOrderFromInput(input);
+
+        const fetchPayments = await this.razorpay_.orders.fetchPayments(
+            razorpayOrder.id as string
+        );
+        const capturedPayments = fetchPayments.items?.filter(
+            (item) => item.status === "captured"
+        );
+
+        if (capturedPayments.length !== 0) {
+            throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                "Cannot cancel a payment that has been captured"
+            );
+        }
+
+        const possibleRefunds = fetchPayments.items?.filter(
+            (item) => item.status === "authorized"
+        );
+
+        const result = await Promise.all(
+            possibleRefunds?.map(async (payment) => {
+                const { id, amount } = payment;
+                const refund = await this.razorpay_.payments.refund(id, {
+                    amount,
+                    notes: {
+                        medusa_payment_session_id: paymentSession.id
+                    }
+                });
+                return refund;
+            })
+        );
+        const syncResult = await this.syncPaymentSession(
+            paymentSession.id,
+            razorpayOrder.id as string
+        );
+
+        return {
+            data: {
+                razorpayOrder: syncResult.razorpayOrder,
+                razorpayRefunds: result
+            }
+        };
+    }
+
+    async getPaymentSessionAndOrderFromInput(
+        input:
+            | AuthorizePaymentInput
+            | CapturePaymentInput
+            | CancelPaymentInput
+            | DeletePaymentInput
+            | RefundPaymentInput
+            | RetrievePaymentInput
+            | UpdatePaymentInput
+    ): Promise<{
+        paymentSession: PaymentSessionDTO;
+        razorpayOrder: Orders.RazorpayOrder;
+    }> {
+        let { data, context } = input;
+        if (!data?.razorpayorder) {
+            if (data?.id) {
+                data = {
+                    ...data,
+                    razorpayOrder: await this.razorpay_.orders.fetch(
+                        data.id as string
+                    )
+                };
+            }
+        }
+        let { razorpayOrder } = data as { razorpayOrder: Orders.RazorpayOrder };
+
+        const paymentSessionId =
+            (razorpayOrder?.notes as Record<string, string>)
+                ?.medusa_payment_session_id ?? context?.idempotency_key;
+
+        const paymentSession =
+            await this.paymentService.retrievePaymentSession(paymentSessionId);
+        if (!razorpayOrder) {
+            razorpayOrder = paymentSession?.data
+                ?.razorpayOrder as Orders.RazorpayOrder;
+        }
+        if (razorpayOrder) {
+            const razorpayOrder_latest = await this.razorpay_.orders.fetch(
+                razorpayOrder.id as string
+            );
+
+            if (razorpayOrder_latest.status !== razorpayOrder.status) {
+                razorpayOrder = razorpayOrder_latest;
+            }
+        }
+
+        return {
+            paymentSession,
+            razorpayOrder: razorpayOrder
+        };
+    }
+
+    private getRazorpayOrderCreateRequestBody(
+        amount: number,
+        currency_code: string
+    ): Orders.RazorpayOrderCreateRequestBody {
+        const intentRequest: Orders.RazorpayOrderCreateRequestBody = {
+            amount: amount,
+            currency: currency_code.toUpperCase(),
+
+            payment: {
+                capture:
+                    (this.options_.auto_capture ?? true)
+                        ? "automatic"
+                        : "manual",
+                capture_options: {
+                    refund_speed: this.options_.refund_speed ?? "normal",
+                    automatic_expiry_period: Math.max(
+                        this.options_.automatic_expiry_period ?? 20,
+                        12
+                    ),
+                    manual_expiry_period: Math.max(
+                        this.options_.manual_expiry_period ?? 10,
+                        7200
+                    )
+                }
+            }
+        };
+        return intentRequest;
+    }
+
+    async syncPaymentSession(
+        paymentSessionId: string,
+        razorpayOrderId: string
+    ): Promise<{
+        razorpayOrder: Orders.RazorpayOrder;
+        paymentSession: PaymentSessionDTO;
+    }> {
+        const orderData = await this.updateRazorpayOrderMetadata(
+            razorpayOrderId,
+            {
+                medusa_payment_session_id: paymentSessionId
+            }
+        );
+        const paymentSessionData =
+            await this.paymentService.retrievePaymentSession(paymentSessionId);
+        return {
+            razorpayOrder: orderData,
+            paymentSession: paymentSessionData
+        };
+    }
+
+    async initiatePayment(
+        input: InitiatePaymentInput
+    ): Promise<InitiatePaymentOutput> {
+        const paymentSessionId = input.context?.idempotency_key;
+
+        const { amount, currency_code } = input;
+
+        if (!paymentSessionId) {
+            throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                "Payment session ID is required"
+            );
+        }
+
+        const toPay = getSmallestUnit(amount, currency_code);
+        try {
+            const razorpayOrderCreateRequest = {
+                ...this.getRazorpayOrderCreateRequestBody(toPay, currency_code),
+                notes: { medusa_payment_session_id: paymentSessionId }
+            };
+
+            const razorpayOrder = await this.razorpay_.orders.create(
+                razorpayOrderCreateRequest
+            );
+
+            return {
+                id: paymentSessionId,
+                data: { razorpayOrder: razorpayOrder }
+            };
+        } catch (error) {
+            this.logger.error(
+                `Error creating Razorpay order: ${error.message}`,
+                error
+            );
+            throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                `Failed to create Razorpay order: ${error.message}`
+            );
+        }
+    }
+    async updateRazorpayOrderMetadata(
+        orderId: string,
+        metadata: IMap<string | number>
+    ): Promise<Orders.RazorpayOrder> {
+        let orderData = await this.razorpay_.orders.fetch(orderId);
+        if (!orderData) {
+            throw new MedusaError(
+                MedusaError.Types.NOT_FOUND,
+                `Invoice with ID ${orderId} not found`
+            );
+        }
+        let notes = orderData.notes;
+        if (!notes) {
+            notes = {
+                ...metadata
+            };
+        } else {
+            notes = {
+                ...notes,
+                ...metadata
+            };
+        }
+
+        orderData = await this.razorpay_.orders.edit(orderId, {
+            notes: {
+                ...metadata
+            }
+        });
+        return orderData;
+    }
+    async updateRazorpayMetadataInCustomer(
+        customer: CustomerDTO,
+        parameterName: string,
+        parameterValue: string
+    ): Promise<CustomerDTO> {
+        const metadata = customer.metadata;
+        let razorpay = metadata?.razorpay as Record<string, string>;
+        if (razorpay) {
+            razorpay[parameterName] = parameterValue;
+        } else {
+            razorpay = {};
+            razorpay[parameterName] = parameterValue;
+        }
+        //
+        const x = await updateRazorpayCustomerMetadataWorkflow(
+            this.container_
+        ).run({
+            input: {
+                medusa_customer_id: customer.id,
+                razorpay
+            }
+        });
+        const result = x.result.customer;
+
+        return result;
+    }
+
+    async deletePayment(
+        input: DeletePaymentInput
+    ): Promise<DeletePaymentOutput> {
+        try {
+            return await this.cancelPayment(input);
+        } catch (e) {
+            this.logger.error(
+                `Error deleting Razorpay payment: ${e.message}`,
+                e
+            );
+            return {
+                data: {
+                    razorpayOrder: input.data?.razorpayOrder
+                }
+            };
+        }
+    }
+    async getPaymentStatus(
+        input: GetPaymentStatusInput
+    ): Promise<GetPaymentStatusOutput> {
+        const razorpayOrder = input.data
+            ?.razorpayOrder as unknown as Orders.RazorpayOrder;
+        const id = razorpayOrder.id as string;
+
+        let paymentIntent: Orders.RazorpayOrder;
+        let paymentsAttempted: {
+            entity: string;
+            count: number;
+            items: Array<Payments.RazorpayPayment>;
+        };
+        try {
+            paymentIntent = await this.razorpay_.orders.fetch(id);
+            paymentsAttempted = await this.razorpay_.orders.fetchPayments(id);
+        } catch (_e) {
+            const orderId = (input.data as unknown as Payments.RazorpayPayment)
+                .order_id as string;
+            this.logger.warn(
+                "received payment data from session not order data"
+            );
+            paymentIntent = await this.razorpay_.orders.fetch(orderId);
+            paymentsAttempted =
+                await this.razorpay_.orders.fetchPayments(orderId);
+        }
+        let status: PaymentSessionStatus = PaymentSessionStatus.PENDING;
+        switch (paymentIntent.status) {
+            // created' | 'authorized' | 'captured' | 'refunded' | 'failed'
+            case "created":
+                status = PaymentSessionStatus.REQUIRES_MORE;
+                break;
+            case "paid":
+                status = PaymentSessionStatus.AUTHORIZED;
+                break;
+
+            case "attempted":
+                status = await this.getRazorpayPaymentStatus(
+                    paymentIntent,
+                    paymentsAttempted
+                );
+                break;
+            default:
+                status = PaymentSessionStatus.PENDING;
+        }
+        return { status };
+    }
+    async getRazorpayPaymentStatus(
+        paymentIntent: Orders.RazorpayOrder,
+        attempts: {
+            entity: string;
+            count: number;
+            items: Array<Payments.RazorpayPayment>;
+        }
+    ): Promise<PaymentSessionStatus> {
+        if (!paymentIntent) {
+            return PaymentSessionStatus.ERROR;
+        } else {
+            const authorisedAttempts = attempts.items.filter(
+                (i) => i.status === PaymentSessionStatus.AUTHORIZED
+            );
+            const totalAuthorised = authorisedAttempts.reduce((p, c) => {
+                const data = p + parseInt(`${c.amount}`, 10);
+                return data;
+            }, 0);
+            return totalAuthorised === paymentIntent.amount
+                ? PaymentSessionStatus.AUTHORIZED
+                : PaymentSessionStatus.REQUIRES_MORE;
+        }
+    }
+    async refundPayment(
+        input: RefundPaymentInput
+    ): Promise<RefundPaymentOutput> {
+        const { razorpayOrder, paymentSession } =
+            await this.getPaymentSessionAndOrderFromInput(input);
+        const id = razorpayOrder.id as string;
+        const refundAmount = getSmallestUnit(
+            input.amount,
+            razorpayOrder.currency as string
+        );
+        const paymentList = await this.razorpay_.orders.fetchPayments(id);
+
+        const payment_id = paymentList.items?.find((p) => {
+            return (
+                parseInt(`${p.amount}`, 10) >= refundAmount &&
+                (p.status === "authorized" || p.status === "captured")
+            );
+        })?.id;
+        if (payment_id) {
+            const refundRequest = {
+                amount: refundAmount
+            };
+            try {
+                const razorpayRefundSession =
+                    await this.razorpay_.payments.refund(
+                        payment_id,
+                        refundRequest
+                    );
+                const razorpayPayment = await this.razorpay_.payments.fetch(
+                    razorpayRefundSession.payment_id
+                );
+                const order = await this.razorpay_.orders.fetch(
+                    razorpayPayment.order_id
+                );
+
+                await this.syncPaymentSession(
+                    paymentSession.id,
+                    order.id as string
+                );
+
+                const refundResult: RefundPaymentOutput = {
+                    data: {
+                        razorpayOrder: order,
+                        razorpayRefundSession
+                    }
+                };
+                return refundResult;
+            } catch (e) {
+                this.logger.error(
+                    `Error creating Razorpay refund: ${e.message}`,
+                    e
+                );
+                throw new MedusaError(
+                    MedusaError.Types.INVALID_DATA,
+                    `Failed to create Razorpay refund: ${e.message}`
+                );
+            }
+        } else {
+            return {
+                data: {
+                    razorpayOrder: razorpayOrder
+                }
+            };
+        }
+    }
+    async retrievePayment(
+        input: RetrievePaymentInput
+    ): Promise<RetrievePaymentOutput> {
+        const { razorpayOrder } =
+            await this.getPaymentSessionAndOrderFromInput(input);
+
+        return {
+            data: {
+                razorpayOrder: razorpayOrder
+            }
+        };
+    }
+
+    async updatePayment(
+        input: UpdatePaymentInput
+    ): Promise<UpdatePaymentOutput> {
+        const { razorpayOrder } =
+            await this.getPaymentSessionAndOrderFromInput(input);
+        const invoiceData = await this.updateRazorpayOrderMetadata(
+            razorpayOrder.id as string,
+
+            {
+                ...razorpayOrder.notes,
+                medusa_payment_session_id:
+                    ((razorpayOrder.notes as Record<string, unknown>)
+                        ?.medusa_payment_session_id as string) ??
+                    input?.context?.idempotency_key
+            }
+        );
+        return {
+            data: { razorpayOrder: invoiceData }
+        };
+    }
+    async getWebhookActionAndData(
+        webhookData: ProviderWebhookPayload["payload"]
+    ): Promise<WebhookActionResult> {
+        const webhookSignature = webhookData.headers["x-razorpay-signature"];
+
+        const webhookSecret =
+            this.options_?.webhook_secret ||
+            process.env.RAZORPAY_WEBHOOK_SECRET ||
+            process.env.RAZORPAY_TEST_WEBHOOK_SECRET;
+
+        const logger = this.logger;
+        const data = webhookData.data;
+
+        try {
+            if (!webhookSignature || !webhookSecret) {
+                return { action: PaymentActions.FAILED };
+            }
+            const validationResponse = Razorpay.validateWebhookSignature(
+                webhookData.rawData.toString(),
+                webhookSignature as string,
+                webhookSecret
+            );
+            // return if validation fails
+            if (!validationResponse) {
+                return { action: PaymentActions.FAILED };
+            }
+        } catch (error) {
+            logger.error(
+                `Razorpay webhook validation failed : ${JSON.stringify(error)}`
+            );
+
+            return { action: PaymentActions.FAILED };
+        }
+        const paymentData = (webhookData.data as unknown as WebhookEventData)
+            .payload?.payment?.entity;
+        const event = data.event;
+
+        if (!paymentData?.order_id) {
+            return { action: PaymentActions.NOT_SUPPORTED };
+        }
+
+        const order = await this.razorpay_.orders.fetch(paymentData.order_id);
+        const sessionId = await this.resolveWebhookSessionId(
+            paymentData,
+            order
+        );
+
+        logger.info(
+            `Razorpay webhook ${event}: payment ${paymentData.id}, order ${order.id}, session ${sessionId ?? "not found"}`
+        );
+
+        // Without a session id Medusa cannot tell which payment this is.
+        if (!sessionId) {
+            return { action: PaymentActions.NOT_SUPPORTED };
+        }
+
+        /** sometimes this even fires before the order is updated in the remote system */
+        const outstanding = getAmountFromSmallestUnit(
+            order.amount_paid === 0 ? paymentData.amount : order.amount_paid,
+            paymentData.currency.toUpperCase()
+        );
+        const actionData = { session_id: sessionId, amount: outstanding };
+
+        switch (event) {
+            case "payment.captured":
+                return { action: PaymentActions.SUCCESSFUL, data: actionData };
+            case "payment.authorized":
+                return { action: PaymentActions.AUTHORIZED, data: actionData };
+            case "payment.failed":
+                return { action: PaymentActions.FAILED, data: actionData };
+            default:
+                return { action: PaymentActions.NOT_SUPPORTED };
+        }
+    }
+
+    /**
+     * Finds the Medusa payment session a Razorpay payment belongs to: notes
+     * on the payment, then notes on its Razorpay order (stamped in
+     * initiatePayment and on every sync), then the payment session that
+     * stores this Razorpay order (orders created before notes were stamped).
+     */
+    private async resolveWebhookSessionId(
+        payment: { notes?: unknown },
+        order: Orders.RazorpayOrder
+    ): Promise<string | undefined> {
+        const paymentNotes = (payment.notes ?? {}) as Record<string, unknown>;
+        const orderNotes = (order.notes ?? {}) as Record<string, unknown>;
+        const fromNotes =
+            paymentNotes.medusa_payment_session_id ??
+            paymentNotes.session_id ??
+            orderNotes.medusa_payment_session_id;
+        if (fromNotes) {
+            return String(fromNotes);
+        }
+
+        try {
+            const pg = this.container_[ContainerRegistrationKeys.PG_CONNECTION];
+            const rows = await pg("payment_session")
+                .select("id")
+                .whereRaw(`data->'razorpayOrder'->>'id' = ?`, [order.id])
+                .whereNull("deleted_at")
+                .limit(1);
+            return rows?.[0]?.id;
+        } catch (e) {
+            this.logger.warn(
+                `Razorpay webhook: could not look up payment session for order ${order.id}: ${e.message}`
+            );
+            return undefined;
+        }
+    }
+
+    async createAccountHolder(
+        input: CreateAccountHolderInput
+    ): Promise<CreateAccountHolderOutput> {
+        const { first_name, last_name, email, phone, billing_address } = input
+            .context.customer as PaymentCustomerDTO;
+        const accountHolder = await this.razorpay_.customers.create({
+            name: `${first_name} ${last_name}`,
+            email: email,
+            contact: phone ?? undefined,
+            gstin: billing_address?.metadata?.gstin as string,
+            notes: {
+                medusa_account_holder_id: "NA"
+            }
+        });
+
+        return {
+            data: accountHolder as unknown as Record<string, unknown>,
+            id: accountHolder.id
+        };
+    }
+    async updateAccountHolder(
+        input: UpdateAccountHolderInput
+    ): Promise<UpdateAccountHolderOutput> {
+        const {
+            id,
+            name,
+            email,
+            phone: contact
+        } = input.data as {
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+            notes: Record<string, unknown>;
+        };
+        const accountHolder = await this.razorpay_.customers.edit(id, {
+            name: name,
+            email: email,
+            contact: contact
+        });
+        return {
+            data: accountHolder as unknown as Record<string, unknown>
+        };
+    }
+    async deleteAccountHolder(
+        input: DeleteAccountHolderInput
+    ): Promise<DeleteAccountHolderOutput> {
+        const { id } = input.data as { id: string };
+        const accountHolder = await this.razorpay_.customers.fetch(id);
+        await this.razorpay_.customers.edit(id, {
+            name: "DELETED"
+        });
+        return {
+            data: accountHolder as unknown as Record<string, unknown>
+        };
+    }
+}
+
+export default RazorpayBase;

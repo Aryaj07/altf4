@@ -555,7 +555,7 @@ export async function getProduct(handle: string): Promise<Product | null> {
   try {
     const res = await medusaRequest({
       method: 'GET',
-      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price,+*variants.inventory_quantity,+*variants.preorder_variant,+*variants.thumbnail`,
+      path: `/products?handle=${handle}&limit=1&fields=+*variants.calculated_price,+variants.inventory_quantity,+*variants.preorder_variant,+*variants.thumbnail`,
       tags: ['products']
     });
 
@@ -595,17 +595,17 @@ export async function getProducts({
   if (query) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?q=${query}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
+      path: `/products?q=${query}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
       tags: ['products']
     });
   } else if (categoryId) {
     res = await medusaRequest({
       method: 'GET',
-      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
+      path: `/products?category_id[]=${categoryId}&limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
       tags: ['products']
     });
   } else {
-    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`, tags: ['products'] });
+    res = await medusaRequest({ method: 'GET', path: `/products?limit=100&fields=+*variants.calculated_price,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`, tags: ['products'] });
   }
 
   if (!res) {

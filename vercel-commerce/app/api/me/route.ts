@@ -15,9 +15,13 @@ export async function POST(req: NextRequest) {
       email: normalizeEmail(email),
       password,
     })
+    // Redirect, MFA and verification steps aren't used by emailpass login here
     if (typeof token !== "string") {
       return NextResponse.json(
-        { message: "Authentication requires redirect", location: token.location },
+        {
+          message: "Authentication requires an additional step",
+          location: "location" in token ? token.location : undefined,
+        },
         { status: 401 }
       )
     }

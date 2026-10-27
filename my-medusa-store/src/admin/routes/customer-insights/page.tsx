@@ -25,6 +25,10 @@ import {
 
 const PAGE_SIZE = 20
 
+// Table.Cell renders a <td> and forwards props, but its types (ui 4.2+) omit colSpan.
+const spanColumns = (colSpan: number) =>
+  ({ colSpan }) as React.TdHTMLAttributes<HTMLTableCellElement>
+
 const STAGE_LABELS: Record<string, { label: string; color: "grey" | "orange" | "blue" | "red" }> = {
   created: { label: "Cart created", color: "grey" },
   checkout_started: { label: "Checkout started", color: "blue" },
@@ -187,12 +191,12 @@ const RecoveryEmailsSection = () => {
         <Table.Body>
           {isLoading && (
             <Table.Row>
-              <Table.Cell colSpan={6}>Loading…</Table.Cell>
+              <Table.Cell {...spanColumns(6)}>Loading…</Table.Cell>
             </Table.Row>
           )}
           {!isLoading && !data?.recovery_emails.length && (
             <Table.Row>
-              <Table.Cell colSpan={6}>No recovery emails sent yet.</Table.Cell>
+              <Table.Cell {...spanColumns(6)}>No recovery emails sent yet.</Table.Cell>
             </Table.Row>
           )}
           {data?.recovery_emails.map((re) => (
@@ -451,12 +455,12 @@ const CustomerInsightsPage = () => {
           <Table.Body>
             {cartsLoading && (
               <Table.Row>
-                <Table.Cell colSpan={7}>Loading…</Table.Cell>
+                <Table.Cell {...spanColumns(7)}>Loading…</Table.Cell>
               </Table.Row>
             )}
             {!cartsLoading && !abandoned?.carts.length && (
               <Table.Row>
-                <Table.Cell colSpan={7}>
+                <Table.Cell {...spanColumns(7)}>
                   No abandoned carts found. Nice!
                 </Table.Cell>
               </Table.Row>

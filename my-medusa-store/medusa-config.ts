@@ -20,11 +20,7 @@ module.exports = defineConfig({
       sslmode: "disable",
     },
   },
-  plugins: ["medusa-plugin-razorpay-v2",
-    {
-      resolve: "medusa-plugin-razorpay-v2",
-      options: {}
-    },
+  plugins: [
     {
       resolve: '@lambdacurry/medusa-product-reviews',
       options: {
@@ -110,7 +106,7 @@ module.exports = defineConfig({
       options: {
         providers: [
           {
-            resolve: "medusa-plugin-razorpay-v2/providers/payment-razorpay/src",
+            resolve: "./src/modules/razorpay",
             id: "razorpay",
             options: {
               key_id:

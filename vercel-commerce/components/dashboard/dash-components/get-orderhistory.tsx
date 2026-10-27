@@ -110,7 +110,9 @@ export default function OrderHistory() {
       sdk.store.order
         .list({
           fields:
-            "+id,+display_id,+currency_code,+created_at,+fulfillment_status,+status,+total,+item_total,+subtotal,+shipping_total,+tax_total,+items.id,+items.title,+items.variant_title,+items.quantity,+items.unit_price,+items.thumbnail,+shipping_methods.*,+shipping_methods.name,+shipping_address.address_1,+shipping_address.city,+shipping_address.postal_code",
+            // Whole relations: the store API's allowlist rejects single
+            // nested fields such as items.title (Medusa v2.21+).
+            "+fulfillment_status,+item_total,+subtotal,+shipping_total,+tax_total,+*items,+*shipping_methods,+*shipping_address",
         })
         .then(({ orders }) => {
           const detailedOrders = orders.map((order: any) => ({

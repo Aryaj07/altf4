@@ -452,7 +452,7 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
     if (collectionId) {
       const res = await medusaRequest({
         method: 'GET',
-        path: `/products?collection_id[]=${collectionId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
+        path: `/products?collection_id[]=${collectionId}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
         tags: ['products']
       });
       if (res?.body?.products) {
@@ -469,7 +469,7 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
         const categoryFilter = validCatIds.map(cid => `category_id[]=${cid}`).join('&');
         const res = await medusaRequest({
           method: 'GET',
-          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
+          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
           tags: ['products']
         });
         if (res?.body?.products) {
@@ -490,7 +490,7 @@ async function RelatedProducts({ id, product }: { id: string; product: Product }
         const categoryFilter = otherCategoryIds.map(cid => `category_id[]=${cid}`).join('&');
         const res = await medusaRequest({
           method: 'GET',
-          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+*variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
+          path: `/products?${categoryFilter}&limit=10&fields=+*variants.calculated_price,+*variants.preorder_variant,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder`,
           tags: ['products']
         });
         if (res?.body?.products) {
