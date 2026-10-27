@@ -4,7 +4,6 @@ import { UpsertPreorderVariantSchema } from "./admin/variants/[id]/preorders/rou
 import { SearchSchema } from "./store/products/search/route"
 import { RecommendSchema } from "./store/products/recommendations/route"
 import { PostInvoiceConfgSchema } from "./admin/invoice-config/route"
-import * as fs from "fs"
 import * as path from "path"
 import multer from "multer"
 import { logPaymentInitiated } from "./utils/log-payment-initiated"
@@ -119,33 +118,35 @@ export default defineMiddlewares({
       method: "GET",
       middlewares: [
         (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
-          const filePath = decodeURIComponent(req.url.replace("/static/", ""))
-          
           // Use UPLOAD_DIR from env, or default to /static
           const uploadDir = process.env.UPLOAD_DIR || '/static';
-          const staticDir = uploadDir.startsWith('/') 
+          const staticDir = path.isAbsolute(uploadDir)
             ? uploadDir  // Absolute path (production: /static)
             : path.join(process.cwd(), uploadDir); // Relative path (development: ./static)
-          
-          const fullPath = path.join(staticDir, filePath)
 
-          if (fs.existsSync(fullPath)) {
-            const fileContent = fs.readFileSync(fullPath)
-            const ext = path.extname(fullPath).toLowerCase()
-            const contentTypes: Record<string, string> = {
-              ".jpg": "image/jpeg",
-              ".jpeg": "image/jpeg",
-              ".png": "image/png",
-              ".gif": "image/gif",
-              ".webp": "image/webp",
-              ".svg": "image/svg+xml",
-            }
-            res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream")
-            res.setHeader("Cache-Control", "public, max-age=31536000")
-            res.send(fileContent)
-          } else {
-            res.status(404).json({ message: "File not found" })
+          const notFound = () => {
+            if (!res.headersSent) res.status(404).json({ message: "File not found" })
           }
+
+          // req.path excludes the query string; names are URL-encoded (spaces etc.)
+          let filePath: string
+          try {
+            filePath = decodeURIComponent(req.path.replace(/^\/static\//, ""))
+          } catch {
+            return notFound()
+          }
+
+          // sendFile with `root` refuses paths that resolve outside staticDir
+          // (e.g. "../.env") and hidden files, streams the file instead of
+          // buffering it, and answers repeat requests with 304 via ETag.
+          res.setHeader("Cache-Control", "public, max-age=31536000")
+          res.sendFile(
+            filePath,
+            { root: staticDir, dotfiles: "deny", cacheControl: false },
+            (err) => {
+              if (err) notFound()
+            }
+          )
         }
       ]
     },
